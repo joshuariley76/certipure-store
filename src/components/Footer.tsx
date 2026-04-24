@@ -48,6 +48,23 @@ export default function Footer() {
           <p className="text-gray-400 text-[11px] text-center sm:text-right max-w-md leading-relaxed">All products are intended strictly for laboratory and research purposes only. Not for human consumption.</p>
         </div>
       </div>
+      <div className="border-t border-gray-100 py-10 px-4">
+        <div className="max-w-2xl mx-auto">
+          <div className="bg-gray-50 border border-gray-200 rounded-xl p-5 mb-8 text-center">
+            <p className="text-red-600 font-bold text-sm uppercase tracking-wider mb-2">⚠ Mandatory Legal Disclaimer</p>
+            <p className="text-gray-900 font-bold text-sm">&quot;For Research Use Only. Not for Human Consumption.&quot;</p>
+          </div>
+          <p className="text-gray-500 text-xs leading-relaxed text-center mb-5">All products are sold for research, laboratory, or analytical purposes only, and are not for human consumption.</p>
+          <p className="text-gray-500 text-xs leading-relaxed text-center mb-5">CertiPure™ is a chemical supplier. CertiPure™ is not a compounding pharmacy or chemical compounding facility as defined under 503A of the Federal Food, Drug, and Cosmetic act. CertiPure™ is not an outsourcing facility as defined under 503B of the Federal Food, Drug, and Cosmetic act.</p>
+          <p className="text-gray-500 text-xs leading-relaxed text-center mb-5">The statements made within this website have not been evaluated by the US Food and Drug Administration. The products we offer are not intended to diagnose, treat, cure or prevent any disease.</p>
+          <p className="text-gray-500 text-xs leading-relaxed text-center font-semibold mb-8">Human/Animal Consumption Prohibited. Laboratory/In-Vitro Experimental Use Only</p>
+        </div>
+      </div>
+      <div className="border-t border-gray-100">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 text-center">
+          <p className="text-gray-400 text-xs">Copyright &copy; 2026 <span className="text-[#2d3ca5] font-bold">CertiPure™</span>. All Rights Reserved.</p>
+        </div>
+      </div>
     </footer>
   )
 }
