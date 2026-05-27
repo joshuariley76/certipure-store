@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import ProductCard from '@/components/ProductCard'
+import PackSelector from '@/components/PackSelector'
 
 export const dynamic = 'force-dynamic'
 
@@ -40,9 +41,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             <p className="text-sm text-[#2d3ca5] font-semibold uppercase tracking-wider mb-2">{product.category?.name || 'Peptide'}</p>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">{product.name}</h1>
             <p className="text-gray-400 text-sm mb-4">{product.size}{product.unit} • SKU: {product.sku}</p>
-            <span className="text-4xl font-extrabold text-[#2d3ca5] block mb-6">${product.price}</span>
             <p className="text-gray-600 text-sm leading-relaxed mb-6">{product.description}</p>
-            <button className="w-full bg-[#2d3ca5] hover:bg-[#232f82] text-white font-semibold py-3.5 rounded-xl transition text-base">Add to Cart</button>
+            <PackSelector product={product} />
           </div>
         </div>
         {coas.length > 0 && (

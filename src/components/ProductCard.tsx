@@ -20,7 +20,11 @@ export default function ProductCard({ product }: { product: any }) {
         <h3 className="font-bold text-sm text-gray-900">{product.name} ({product.size}{product.unit})</h3>
         <p className="text-xs text-gray-400 mt-1 line-clamp-2">{product.short_description}</p>
         <div className="flex items-center justify-between mt-3">
-          <span className="text-xl font-extrabold text-[#2d3ca5]">${product.price}</span>
+          <span className="text-xl font-extrabold text-[#2d3ca5]">
+            {product.price_single != null && product.price_5pack != null
+              ? `$${product.price_single} – $${product.price_5pack}`
+              : `$${product.price}`}
+          </span>
           <button className="bg-[#2d3ca5] hover:bg-[#232f82] text-white text-xs font-semibold px-4 py-2 rounded-lg transition">Add to Cart</button>
         </div>
       </div>

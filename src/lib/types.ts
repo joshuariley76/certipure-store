@@ -5,6 +5,9 @@ export interface Product {
   description: string
   short_description: string
   price: number
+  price_single?: number
+  price_3pack?: number
+  price_5pack?: number
   compare_at_price: number | null
   size: string
   unit: string
@@ -44,6 +47,7 @@ export interface CartItem {
   id: string
   customer_id: string
   product_id: string
+  pack_size: 1 | 3 | 5
   quantity: number
   product?: Product
 }
