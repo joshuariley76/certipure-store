@@ -22,8 +22,8 @@ export default function FeaturedCarousel({ products }: { products: any[] }) {
           <div key={product.id} className="min-w-[250px] max-w-[250px] snap-start bg-white border border-gray-200 rounded-2xl overflow-hidden flex-shrink-0 hover:-translate-y-1 hover:shadow-xl transition-all">
             <Link href={`/product/${product.slug}`}>
               <div className="relative bg-gray-50 h-[260px] flex items-center justify-center p-4">
-                {product.badge && (
-                  <span className={`absolute top-3 left-3 text-[10px] font-bold px-2.5 py-1 rounded-full z-10 ${product.badge === 'Best Seller' || product.badge === 'Popular' ? 'bg-[#2d3ca5] text-white' : 'bg-blue-50 text-[#2d3ca5]'}`}>
+                {product.badge && product.badge !== 'Best Seller' && product.badge !== 'Popular' && (
+                  <span className="absolute top-3 left-3 text-[10px] font-bold px-2.5 py-1 rounded-full z-10 bg-blue-50 text-[#2d3ca5]">
                     {product.badge}
                   </span>
                 )}

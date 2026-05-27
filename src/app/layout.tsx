@@ -3,11 +3,12 @@ import "./globals.css"
 import Navbar from "@/components/Navbar"
 import Footer from "@/components/Footer"
 import GateModal from "@/components/GateModal"
+import AgeGateModal from "@/components/AgeGateModal"
 import { createClient } from "@/lib/supabase/server"
 
 export const metadata: Metadata = {
-  title: "CertiPure - Premium Research Peptides | 99%+ Purity",
-  description: "Premium research peptides with 99%+ purity. Every batch third-party lab tested.",
+  title: "CertiPure — Research Peptides | 99%+ Purity, Third-Party Tested",
+  description: "Research peptides with 99%+ purity. Every batch third-party lab tested with COAs available.",
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -20,6 +21,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet" />
       </head>
       <body className="bg-white text-gray-900 antialiased">
+        <AgeGateModal />
         {user ? (
           <>
             <Navbar />

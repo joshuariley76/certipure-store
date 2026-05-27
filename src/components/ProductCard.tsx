@@ -7,8 +7,8 @@ export default function ProductCard({ product }: { product: any }) {
     <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden hover:-translate-y-1 hover:shadow-xl transition-all">
       <Link href={`/product/${product.slug}`}>
         <div className="relative bg-gray-50 h-[240px] flex items-center justify-center p-4">
-          {product.badge && (
-            <span className={`absolute top-3 left-3 text-[10px] font-bold px-2.5 py-1 rounded-full z-10 ${product.badge === 'Best Seller' || product.badge === 'Popular' ? 'bg-[#2d3ca5] text-white' : 'bg-blue-50 text-[#2d3ca5]'}`}>
+          {product.badge && product.badge !== 'Best Seller' && product.badge !== 'Popular' && (
+            <span className="absolute top-3 left-3 text-[10px] font-bold px-2.5 py-1 rounded-full z-10 bg-blue-50 text-[#2d3ca5]">
               {product.badge}
             </span>
           )}

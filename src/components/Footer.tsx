@@ -13,14 +13,13 @@ export default function Footer() {
               </svg>
               <span className="text-lg font-extrabold text-gray-900">CertiPure</span>
             </div>
-            <p className="text-gray-400 text-xs leading-relaxed mb-4">Premium research peptides with 99%+ purity, backed by third-party lab testing.</p>
+            <p className="text-gray-400 text-xs leading-relaxed mb-4">Research peptides with 99%+ purity, backed by third-party lab testing.</p>
             <span className="inline-block bg-[#2d3ca5] text-white text-[10px] font-bold tracking-wider px-3 py-1.5 rounded uppercase">For Research Use Only</span>
           </div>
           <div>
             <h4 className="text-xs font-bold uppercase tracking-wider text-gray-900 mb-4">Shop</h4>
             <ul className="space-y-2.5">
               <li><Link href="/shop" className="text-gray-500 hover:text-[#2d3ca5] text-sm transition">All Peptides</Link></li>
-              <li><Link href="/shop" className="text-gray-500 hover:text-[#2d3ca5] text-sm transition">Best Sellers</Link></li>
             </ul>
           </div>
           <div>
@@ -34,10 +33,10 @@ export default function Footer() {
           <div>
             <h4 className="text-xs font-bold uppercase tracking-wider text-gray-900 mb-4">Support</h4>
             <ul className="space-y-2.5">
-              <li><Link href="/contact" className="text-gray-500 hover:text-[#2d3ca5] text-sm transition">FAQ</Link></li>
               <li><Link href="/contact" className="text-gray-500 hover:text-[#2d3ca5] text-sm transition">Shipping</Link></li>
-              <li><Link href="/contact" className="text-gray-500 hover:text-[#2d3ca5] text-sm transition">Privacy Policy</Link></li>
-              <li><Link href="/contact" className="text-gray-500 hover:text-[#2d3ca5] text-sm transition">Terms</Link></li>
+              <li><Link href="/privacy" className="text-gray-500 hover:text-[#2d3ca5] text-sm transition">Privacy Policy</Link></li>
+              <li><Link href="/terms" className="text-gray-500 hover:text-[#2d3ca5] text-sm transition">Terms</Link></li>
+              <li><Link href="/disclaimers" className="text-gray-500 hover:text-[#2d3ca5] text-sm transition">Disclaimers</Link></li>
             </ul>
           </div>
         </div>
@@ -54,6 +53,10 @@ export default function Footer() {
             <p className="text-red-600 font-bold text-sm uppercase tracking-wider mb-2">⚠ Mandatory Legal Disclaimer</p>
             <p className="text-gray-900 font-bold text-sm">&quot;For Research Use Only. Not for Human Consumption.&quot;</p>
           </div>
+          <p className="text-gray-500 text-xs leading-relaxed text-center mb-5">All products currently listed on this site are for research purposes ONLY.</p>
+          <p className="text-gray-500 text-xs leading-relaxed text-center mb-5">All products sold on this website are intended for research and identification purposes only.</p>
+          <p className="text-gray-500 text-xs leading-relaxed text-center mb-5">These products are not intended for human dosing, injections, or ingestion.</p>
+          <p className="text-gray-500 text-xs leading-relaxed text-center mb-5">Peptides are strictly for laboratory, academic, or institutional research and not for human or animal consumption.</p>
           <p className="text-gray-500 text-xs leading-relaxed text-center mb-5">All products are sold for research, laboratory, or analytical purposes only, and are not for human consumption.</p>
           <p className="text-gray-500 text-xs leading-relaxed text-center mb-5">CertiPure™ is a chemical supplier. CertiPure™ is not a compounding pharmacy or chemical compounding facility as defined under 503A of the Federal Food, Drug, and Cosmetic act. CertiPure™ is not an outsourcing facility as defined under 503B of the Federal Food, Drug, and Cosmetic act.</p>
           <p className="text-gray-500 text-xs leading-relaxed text-center mb-5">The statements made within this website have not been evaluated by the US Food and Drug Administration. The products we offer are not intended to diagnose, treat, cure or prevent any disease.</p>

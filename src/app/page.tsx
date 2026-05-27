@@ -116,8 +116,8 @@ export default async function HomePage() {
       )}
 
       <section className="bg-[#0f1540] py-14 px-6 text-center border-t border-white/10">
-        <h2 className="text-2xl font-bold text-white mb-2" style={{ fontFamily: "'Playfair Display', serif" }}>Stay Updated</h2>
-        <p className="text-white/40 text-sm mb-6">Get notified about new products and batch releases.</p>
+        <h2 className="text-2xl font-bold text-white mb-2" style={{ fontFamily: "'Playfair Display', serif" }}>Stay Informed</h2>
+        <p className="text-white/40 text-sm mb-6">Get notified about new product availability and lab test results.</p>
         <div className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
           <input type="email" placeholder="Enter your email" className="flex-1 px-5 py-3 rounded bg-white/10 border border-white/15 text-white placeholder-white/40 text-sm focus:outline-none" />
           <button className="bg-[#2d3ca5] text-white font-bold text-sm px-7 py-3 rounded hover:bg-[#3a4bbf] transition">Subscribe</button>
