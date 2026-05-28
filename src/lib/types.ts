@@ -45,10 +45,12 @@ export interface COA {
 
 export interface CartItem {
   id: string
-  customer_id: string
+  user_id: string
   product_id: string
   pack_size: 1 | 3 | 5
   quantity: number
+  price_at_add: number
+  created_at?: string
   product?: Product
 }
 

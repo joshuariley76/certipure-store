@@ -3,8 +3,11 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import SearchBar from './SearchBar'
+import { useCart } from '@/lib/use-cart'
 
 export default function Navbar() {
+  const { itemCount, openDrawer } = useCart()
+
   const handleSignOut = async () => {
     const supabase = createClient()
     await supabase.auth.signOut()
@@ -25,10 +28,19 @@ export default function Navbar() {
             <SearchBar />
           </div>
           <div className="flex items-center gap-4 flex-shrink-0">
-            <Link href="/cart" className="flex items-center gap-1.5 text-gray-600 hover:text-[#2d3ca5] transition relative">
+            <button
+              type="button"
+              onClick={openDrawer}
+              aria-label={`Open cart${itemCount > 0 ? `, ${itemCount} item${itemCount === 1 ? '' : 's'}` : ''}`}
+              className="flex items-center gap-1.5 text-gray-600 hover:text-[#2d3ca5] transition relative"
+            >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 01-8 0"/></svg>
-              <span className="absolute -top-2 -right-2 bg-[#2d3ca5] text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">0</span>
-            </Link>
+              {itemCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-[#2d3ca5] text-white text-[10px] min-w-[1rem] h-4 px-1 rounded-full flex items-center justify-center font-bold">
+                  {itemCount}
+                </span>
+              )}
+            </button>
             <button
               onClick={handleSignOut}
               className="text-sm font-medium text-gray-600 hover:text-[#2d3ca5] transition"

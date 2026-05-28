@@ -4,6 +4,8 @@ import Navbar from "@/components/Navbar"
 import Footer from "@/components/Footer"
 import GateModal from "@/components/GateModal"
 import AgeGateModal from "@/components/AgeGateModal"
+import CartDrawer from "@/components/CartDrawer"
+import { CartProvider } from "@/lib/cart-context"
 import { createClient } from "@/lib/supabase/server"
 
 export const metadata: Metadata = {
@@ -22,25 +24,28 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body className="bg-white text-gray-900 antialiased">
         <AgeGateModal />
-        {user ? (
-          <>
-            <Navbar />
-            {children}
-            <Footer />
-          </>
-        ) : (
-          <>
-            <div
-              aria-hidden="true"
-              className="h-screen overflow-hidden pointer-events-none select-none blur-lg"
-            >
+        <CartProvider>
+          {user ? (
+            <>
               <Navbar />
               {children}
               <Footer />
-            </div>
-            <GateModal />
-          </>
-        )}
+            </>
+          ) : (
+            <>
+              <div
+                aria-hidden="true"
+                className="h-screen overflow-hidden pointer-events-none select-none blur-lg"
+              >
+                <Navbar />
+                {children}
+                <Footer />
+              </div>
+              <GateModal />
+            </>
+          )}
+          <CartDrawer />
+        </CartProvider>
       </body>
     </html>
   )

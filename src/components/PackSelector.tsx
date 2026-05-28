@@ -1,8 +1,10 @@
 'use client'
 
 import { useState } from 'react'
+import { useCart } from '@/lib/use-cart'
 
 type PackSize = 1 | 3 | 5
+type AddState = 'idle' | 'loading' | 'success' | 'error'
 
 const MIN_QTY = 1
 const MAX_QTY = 10
@@ -52,29 +54,83 @@ function QuantityStepper({
   )
 }
 
+function AddToCartButton({
+  state,
+  onClick,
+}: {
+  state: AddState
+  onClick: () => void
+}) {
+  const base = 'w-full font-semibold py-3.5 rounded-xl transition text-base'
+  if (state === 'success') {
+    return (
+      <button type="button" disabled className={`${base} bg-green-600 text-white`}>
+        Added!
+      </button>
+    )
+  }
+  if (state === 'loading') {
+    return (
+      <button type="button" disabled className={`${base} bg-[#2d3ca5] text-white opacity-70 cursor-wait`}>
+        Adding…
+      </button>
+    )
+  }
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`${base} bg-[#2d3ca5] hover:bg-[#232f82] text-white`}
+    >
+      Add to Cart
+    </button>
+  )
+}
+
 export default function PackSelector({ product }: { product: any }) {
   const [selectedPack, setSelectedPack] = useState<PackSize>(1)
   const [quantity, setQuantity] = useState<number>(1)
+  const [addState, setAddState] = useState<AddState>('idle')
+  const [addError, setAddError] = useState<string | null>(null)
+
+  const { addToCart, openDrawer } = useCart()
 
   const hasTierPricing =
     product.price_single != null &&
     product.price_3pack != null &&
     product.price_5pack != null
 
+  const unitPrice = hasTierPricing
+    ? ({ 1: product.price_single, 3: product.price_3pack, 5: product.price_5pack } as Record<PackSize, number>)[selectedPack]
+    : Number(product.price)
+
+  const total = unitPrice * quantity
+
+  const handleAdd = async () => {
+    if (addState === 'loading') return
+    setAddError(null)
+    setAddState('loading')
+    try {
+      await addToCart(product.id, selectedPack, quantity, unitPrice)
+      setAddState('success')
+      openDrawer()
+      window.setTimeout(() => setAddState('idle'), 1500)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Could not add to cart.'
+      setAddError(msg)
+      setAddState('error')
+      window.setTimeout(() => setAddState('idle'), 2500)
+    }
+  }
+
   if (!hasTierPricing) {
-    const total = Number(product.price) * quantity
     return (
       <div>
         <span className="text-4xl font-extrabold text-[#2d3ca5] block mb-6">${total}</span>
         <p className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">Quantity</p>
         <QuantityStepper quantity={quantity} setQuantity={setQuantity} />
-        <button
-          type="button"
-          data-quantity={quantity}
-          className="w-full bg-[#2d3ca5] hover:bg-[#232f82] text-white font-semibold py-3.5 rounded-xl transition text-base"
-        >
-          Add to Cart
-        </button>
+        <AddToCartButton state={addState} onClick={handleAdd} />
+        {addError && <p className="mt-3 text-sm text-red-600">{addError}</p>}
       </div>
     )
   }
@@ -90,8 +146,6 @@ export default function PackSelector({ product }: { product: any }) {
     { size: 3, label: '3-Pack' },
     { size: 5, label: '5-Pack' },
   ]
-
-  const total = priceByPack[selectedPack] * quantity
 
   return (
     <div>
@@ -138,14 +192,8 @@ export default function PackSelector({ product }: { product: any }) {
       <p className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">Quantity</p>
       <QuantityStepper quantity={quantity} setQuantity={setQuantity} />
 
-      <button
-        type="button"
-        data-pack-size={selectedPack}
-        data-quantity={quantity}
-        className="w-full bg-[#2d3ca5] hover:bg-[#232f82] text-white font-semibold py-3.5 rounded-xl transition text-base"
-      >
-        Add to Cart
-      </button>
+      <AddToCartButton state={addState} onClick={handleAdd} />
+      {addError && <p className="mt-3 text-sm text-red-600">{addError}</p>}
     </div>
   )
 }
