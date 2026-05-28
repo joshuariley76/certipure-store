@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import SearchBar from './SearchBar'
 
 export default function Navbar() {
   const handleSignOut = async () => {
@@ -21,10 +22,7 @@ export default function Navbar() {
             <img src="/certipure-logo.jpg" alt="CertiPure" className="h-20 w-auto" />
           </Link>
           <div className="hidden md:flex flex-1 max-w-md">
-            <div className="relative w-full">
-              <input type="text" placeholder="Search products..." className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-[#2d3ca5] transition pr-10" />
-              <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-            </div>
+            <SearchBar />
           </div>
           <div className="flex items-center gap-4 flex-shrink-0">
             <Link href="/cart" className="flex items-center gap-1.5 text-gray-600 hover:text-[#2d3ca5] transition relative">

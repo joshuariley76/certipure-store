@@ -4,8 +4,57 @@ import { useState } from 'react'
 
 type PackSize = 1 | 3 | 5
 
+const MIN_QTY = 1
+const MAX_QTY = 10
+
+function QuantityStepper({
+  quantity,
+  setQuantity,
+}: {
+  quantity: number
+  setQuantity: (q: number) => void
+}) {
+  const atMin = quantity <= MIN_QTY
+  const atMax = quantity >= MAX_QTY
+
+  const buttonBase =
+    'w-10 h-10 rounded-lg border-2 font-bold text-lg flex items-center justify-center transition'
+  const buttonEnabled = 'border-gray-200 bg-white text-[#2d3ca5] hover:border-[#2d3ca5]'
+  const buttonDisabled = 'border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed'
+
+  return (
+    <div className="flex items-center gap-3 mb-6">
+      <button
+        type="button"
+        onClick={() => setQuantity(Math.max(MIN_QTY, quantity - 1))}
+        disabled={atMin}
+        aria-label="Decrease quantity"
+        className={`${buttonBase} ${atMin ? buttonDisabled : buttonEnabled}`}
+      >
+        −
+      </button>
+      <span
+        aria-live="polite"
+        className="min-w-[2.5rem] text-center text-base font-bold text-gray-900 select-none"
+      >
+        {quantity}
+      </span>
+      <button
+        type="button"
+        onClick={() => setQuantity(Math.min(MAX_QTY, quantity + 1))}
+        disabled={atMax}
+        aria-label="Increase quantity"
+        className={`${buttonBase} ${atMax ? buttonDisabled : buttonEnabled}`}
+      >
+        +
+      </button>
+    </div>
+  )
+}
+
 export default function PackSelector({ product }: { product: any }) {
   const [selectedPack, setSelectedPack] = useState<PackSize>(1)
+  const [quantity, setQuantity] = useState<number>(1)
 
   const hasTierPricing =
     product.price_single != null &&
@@ -13,10 +62,17 @@ export default function PackSelector({ product }: { product: any }) {
     product.price_5pack != null
 
   if (!hasTierPricing) {
+    const total = Number(product.price) * quantity
     return (
       <div>
-        <span className="text-4xl font-extrabold text-[#2d3ca5] block mb-6">${product.price}</span>
-        <button className="w-full bg-[#2d3ca5] hover:bg-[#232f82] text-white font-semibold py-3.5 rounded-xl transition text-base">
+        <span className="text-4xl font-extrabold text-[#2d3ca5] block mb-6">${total}</span>
+        <p className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">Quantity</p>
+        <QuantityStepper quantity={quantity} setQuantity={setQuantity} />
+        <button
+          type="button"
+          data-quantity={quantity}
+          className="w-full bg-[#2d3ca5] hover:bg-[#232f82] text-white font-semibold py-3.5 rounded-xl transition text-base"
+        >
           Add to Cart
         </button>
       </div>
@@ -35,11 +91,11 @@ export default function PackSelector({ product }: { product: any }) {
     { size: 5, label: '5-Pack' },
   ]
 
+  const total = priceByPack[selectedPack] * quantity
+
   return (
     <div>
-      <span className="text-4xl font-extrabold text-[#2d3ca5] block mb-6">
-        ${priceByPack[selectedPack]}
-      </span>
+      <span className="text-4xl font-extrabold text-[#2d3ca5] block mb-6">${total}</span>
 
       <p className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">Pack Size</p>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
@@ -79,9 +135,13 @@ export default function PackSelector({ product }: { product: any }) {
         })}
       </div>
 
+      <p className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">Quantity</p>
+      <QuantityStepper quantity={quantity} setQuantity={setQuantity} />
+
       <button
         type="button"
         data-pack-size={selectedPack}
+        data-quantity={quantity}
         className="w-full bg-[#2d3ca5] hover:bg-[#232f82] text-white font-semibold py-3.5 rounded-xl transition text-base"
       >
         Add to Cart
