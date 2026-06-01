@@ -1,39 +1,8 @@
-'use client'
-
-import { useState } from 'react'
 import Link from 'next/link'
-import { useCart } from '@/lib/use-cart'
 
-type AddState = 'idle' | 'loading' | 'success' | 'error'
-
+// Catalog/listing card. Tapping anywhere takes the customer to the product
+// detail page, where pack size (1/3/5 vials) and Add to Cart live.
 export default function ProductCard({ product }: { product: any }) {
-  const { addToCart, openDrawer } = useCart()
-  const [addState, setAddState] = useState<AddState>('idle')
-  const [addError, setAddError] = useState<string | null>(null)
-
-  // Quick-add a single vial from the listing. Pack/quantity selection lives on
-  // the product detail page via PackSelector.
-  const unitPrice = product.price_single != null ? Number(product.price_single) : Number(product.price)
-
-  const handleAdd = async () => {
-    if (addState === 'loading') return
-    setAddError(null)
-    setAddState('loading')
-    try {
-      await addToCart(product.id, 1, 1, unitPrice)
-      setAddState('success')
-      openDrawer()
-      window.setTimeout(() => setAddState('idle'), 1500)
-    } catch (err) {
-      setAddError(err instanceof Error ? err.message : 'Could not add to cart.')
-      setAddState('error')
-      window.setTimeout(() => setAddState('idle'), 2500)
-    }
-  }
-
-  const buttonLabel =
-    addState === 'success' ? 'Added!' : addState === 'loading' ? 'Adding…' : 'Add to Cart'
-
   return (
     <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden hover:-translate-y-1 hover:shadow-xl transition-all">
       <Link href={`/product/${product.slug}`}>
@@ -56,20 +25,13 @@ export default function ProductCard({ product }: { product: any }) {
               ? `$${product.price_single} – $${product.price_5pack}`
               : `$${product.price}`}
           </span>
-          <button
-            type="button"
-            onClick={handleAdd}
-            disabled={addState === 'loading'}
-            className={`text-xs font-semibold px-4 py-2 rounded-lg transition disabled:cursor-wait ${
-              addState === 'success'
-                ? 'bg-green-600 text-white'
-                : 'bg-[#2d3ca5] hover:bg-[#232f82] text-white'
-            }`}
+          <Link
+            href={`/product/${product.slug}`}
+            className="text-xs font-semibold px-4 py-2 rounded-lg transition bg-[#2d3ca5] hover:bg-[#232f82] text-white"
           >
-            {buttonLabel}
-          </button>
+            View Product
+          </Link>
         </div>
-        {addError && <p className="mt-2 text-xs text-red-600">{addError}</p>}
       </div>
     </div>
   )

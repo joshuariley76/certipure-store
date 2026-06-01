@@ -1,40 +1,11 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useRef } from 'react'
 import Link from 'next/link'
-import { useCart } from '@/lib/use-cart'
 
-type AddState = 'idle' | 'loading' | 'success' | 'error'
-
-// One carousel card. Holds its own Add-to-Cart state so buttons don't all
-// react at once. Quick-adds a single vial — same behaviour as the catalog
-// (ProductCard); pack/quantity selection lives on the product detail page.
+// One carousel card. Tapping it takes the customer to the product detail page,
+// where pack size (1/3/5 vials) and Add to Cart live.
 function FeaturedCard({ product }: { product: any }) {
-  const { addToCart, openDrawer } = useCart()
-  const [addState, setAddState] = useState<AddState>('idle')
-  const [addError, setAddError] = useState<string | null>(null)
-
-  const unitPrice = product.price_single != null ? Number(product.price_single) : Number(product.price)
-
-  const handleAdd = async () => {
-    if (addState === 'loading') return
-    setAddError(null)
-    setAddState('loading')
-    try {
-      await addToCart(product.id, 1, 1, unitPrice)
-      setAddState('success')
-      openDrawer()
-      window.setTimeout(() => setAddState('idle'), 1500)
-    } catch (err) {
-      setAddError(err instanceof Error ? err.message : 'Could not add to cart.')
-      setAddState('error')
-      window.setTimeout(() => setAddState('idle'), 2500)
-    }
-  }
-
-  const buttonLabel =
-    addState === 'success' ? 'Added!' : addState === 'loading' ? 'Adding…' : 'Add to Cart'
-
   return (
     <div className="min-w-[250px] max-w-[250px] snap-start bg-white border border-gray-200 rounded-2xl overflow-hidden flex-shrink-0 hover:-translate-y-1 hover:shadow-xl transition-all">
       <Link href={`/product/${product.slug}`}>
@@ -57,20 +28,13 @@ function FeaturedCard({ product }: { product: any }) {
               ? `$${product.price_single} – $${product.price_5pack}`
               : `$${product.price}`}
           </span>
-          <button
-            type="button"
-            onClick={handleAdd}
-            disabled={addState === 'loading'}
-            className={`text-xs font-semibold px-4 py-2 rounded-lg transition disabled:cursor-wait ${
-              addState === 'success'
-                ? 'bg-green-600 text-white'
-                : 'bg-[#2d3ca5] hover:bg-[#232f82] text-white'
-            }`}
+          <Link
+            href={`/product/${product.slug}`}
+            className="text-xs font-semibold px-4 py-2 rounded-lg transition bg-[#2d3ca5] hover:bg-[#232f82] text-white"
           >
-            {buttonLabel}
-          </button>
+            View Product
+          </Link>
         </div>
-        {addError && <p className="mt-2 text-xs text-red-600">{addError}</p>}
       </div>
     </div>
   )
