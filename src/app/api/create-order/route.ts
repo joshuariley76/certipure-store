@@ -1,0 +1,147 @@
+import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+import { resend } from '@/lib/resend'
+
+// Where admin notifications go, and who emails are sent from. The certipure.net
+// domain must stay verified in Resend for these to deliver.
+const ADMIN_EMAIL = 'joshua@certipure.net'
+const ORDERS_FROM = 'CertiPure Orders <noreply@certipure.net>'
+
+const MAX_SCREENSHOT_BYTES = 10 * 1024 * 1024 // 10 MB
+
+// Generates a customer-facing reference like CP-7Q3K9. Used unless the database
+// fills in its own order_number on insert.
+function buildOrderNumber() {
+  const rand = Math.random().toString(36).slice(2, 8).toUpperCase()
+  return `CP-${rand}`
+}
+
+export async function POST(request: Request) {
+  const supabase = await createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const formData = await request.formData()
+  const firstName   = formData.get('firstName')  as string
+  const lastName    = formData.get('lastName')   as string
+  const email       = formData.get('email')      as string
+  const phone       = formData.get('phone')      as string
+  const address1    = formData.get('address1')   as string
+  const address2    = formData.get('address2')   as string
+  const city        = formData.get('city')       as string
+  const state       = formData.get('state')      as string
+  const zip         = formData.get('zip')        as string
+  const cryptoCoin  = formData.get('cryptoCoin') as string
+  const screenshot  = formData.get('screenshot') as File
+
+  if (!firstName || !lastName || !email || !address1 || !city || !state || !zip || !cryptoCoin || !screenshot) {
+    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+  }
+
+  // Basic safety checks on the uploaded payment screenshot.
+  if (!screenshot.type.startsWith('image/')) {
+    return NextResponse.json({ error: 'Screenshot must be an image file.' }, { status: 400 })
+  }
+  if (screenshot.size > MAX_SCREENSHOT_BYTES) {
+    return NextResponse.json({ error: 'Screenshot is too large (max 10 MB).' }, { status: 400 })
+  }
+
+  // Get cart items
+  const { data: cartItems, error: cartError } = await supabase
+    .from('cart_items')
+    .select('*, products(id, name, slug)')
+    .eq('user_id', user.id)
+
+  if (cartError || !cartItems || cartItems.length === 0) {
+    return NextResponse.json({ error: 'Cart is empty' }, { status: 400 })
+  }
+
+  const subtotal = cartItems.reduce((sum: number, item: any) => sum + item.price_at_add * item.quantity, 0)
+
+  // Upload screenshot
+  const fileExt  = screenshot.name.split('.').pop() || 'png'
+  const fileName = `${user.id}/${Date.now()}.${fileExt}`
+  const fileBuffer = await screenshot.arrayBuffer()
+
+  const { data: uploadData, error: uploadError } = await supabase.storage
+    .from('order-screenshots')
+    .upload(fileName, fileBuffer, { contentType: screenshot.type, upsert: false })
+
+  if (uploadError) {
+    console.error('Screenshot upload error:', uploadError)
+    return NextResponse.json({ error: 'Failed to upload screenshot' }, { status: 500 })
+  }
+
+  // Create order. We pass a generated order_number; if the database generates
+  // its own on insert, that value is returned instead and used below.
+  const orderNumber = buildOrderNumber()
+  const { data: order, error: orderError } = await supabase
+    .from('orders')
+    .insert({
+      user_id: user.id,
+      order_number: orderNumber,
+      status: 'pending_verification',
+      customer_name: `${firstName} ${lastName}`,
+      customer_email: email,
+      customer_phone: phone || null,
+      shipping_address: { line1: address1, line2: address2 || null, city, state, zip, country: 'US' },
+      payment_method: 'crypto',
+      crypto_coin: cryptoCoin,
+      screenshot_url: uploadData.path,
+      subtotal,
+      shipping_cost: 0,
+      tax: 0,
+      order_total: subtotal,
+    })
+    .select()
+    .single()
+
+  if (orderError || !order) {
+    console.error('Order creation error:', orderError)
+    return NextResponse.json({ error: 'Failed to create order' }, { status: 500 })
+  }
+
+  // Use whatever order number ended up in the database (in case it auto-fills).
+  const displayNumber = order.order_number || orderNumber
+
+  // Create order items
+  const orderItems = cartItems.map((item: any) => ({
+    order_id: order.id,
+    product_id: item.product_id,
+    product_name_snapshot: item.products?.name || 'Unknown Product',
+    pack_size: item.pack_size,
+    quantity: item.quantity,
+    price_per_pack: item.price_at_add,
+    line_total: item.price_at_add * item.quantity,
+  }))
+
+  const { error: itemsError } = await supabase.from('order_items').insert(orderItems)
+  if (itemsError) console.error('Order items insert error:', itemsError)
+
+  // Clear cart
+  await supabase.from('cart_items').delete().eq('user_id', user.id)
+
+  // Customer email
+  try {
+    const itemRows = cartItems.map((item: any) => `<tr><td style="padding:8px;border-bottom:1px solid #eee">${item.products?.name} (${item.pack_size === 1 ? 'Single' : item.pack_size + '-Pack'})</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:center">${item.quantity}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right">$${(item.price_at_add * item.quantity).toFixed(2)}</td></tr>`).join('')
+    await resend.emails.send({
+      from: ORDERS_FROM,
+      to: email,
+      subject: `Order Received — ${displayNumber}`,
+      html: `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;color:#333"><div style="background:#0f172a;padding:24px;border-radius:8px 8px 0 0;text-align:center"><h1 style="color:#fff;margin:0">CertiPure</h1><p style="color:#94a3b8;margin:8px 0 0">Research Peptides</p></div><div style="background:#fff;padding:32px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px"><h2 style="color:#0f172a;margin-top:0">Order Received</h2><p>Thank you! We received your payment screenshot and will verify your ${order.crypto_coin} transaction within 1–4 hours.</p><div style="background:#f8fafc;padding:16px;border-radius:6px;margin:20px 0"><p style="margin:0;font-size:14px;color:#64748b">Order Number</p><p style="margin:4px 0 0;font-size:20px;font-weight:bold;color:#0f172a">${displayNumber}</p></div><h3>Order Summary</h3><table style="width:100%;border-collapse:collapse"><thead><tr style="background:#f8fafc"><th style="padding:8px;text-align:left;font-size:13px;color:#64748b">Item</th><th style="padding:8px;text-align:center;font-size:13px;color:#64748b">Qty</th><th style="padding:8px;text-align:right;font-size:13px;color:#64748b">Price</th></tr></thead><tbody>${itemRows}</tbody><tfoot><tr><td colspan="2" style="padding:12px 8px 8px;font-weight:bold;text-align:right">Total:</td><td style="padding:12px 8px 8px;font-weight:bold;text-align:right">$${order.order_total.toFixed(2)}</td></tr></tfoot></table><h3>Shipping To</h3><p style="margin:0">${order.customer_name}<br>${order.shipping_address.line1}${order.shipping_address.line2 ? '<br>' + order.shipping_address.line2 : ''}<br>${order.shipping_address.city}, ${order.shipping_address.state} ${order.shipping_address.zip}</p><div style="margin-top:24px;padding:16px;background:#fffbeb;border:1px solid #fbbf24;border-radius:6px"><p style="margin:0;font-size:14px"><strong>What's next?</strong> Once payment is verified we'll email you a shipping confirmation with tracking. Most orders ship within 1–2 business days.</p></div><p style="margin-top:24px;font-size:13px;color:#64748b">Questions? Email support@certipure.net<br><br><em>All products sold for research purposes only. Not for human consumption.</em></p></div></body></html>`,
+    })
+  } catch (e) { console.error('Customer email failed:', e) }
+
+  // Admin notification
+  try {
+    const itemList = cartItems.map((item: any) => `• ${item.products?.name} (${item.pack_size === 1 ? 'Single' : item.pack_size + '-Pack'}) ×${item.quantity} — $${(item.price_at_add * item.quantity).toFixed(2)}`).join('<br>')
+    await resend.emails.send({
+      from: ORDERS_FROM,
+      to: ADMIN_EMAIL,
+      subject: `🔔 New Order — ${displayNumber} (${cryptoCoin})`,
+      html: `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;color:#333"><h2>🔔 New Order Received</h2><div style="background:#f8fafc;padding:16px;border-radius:6px;margin:16px 0"><p style="margin:0"><strong>Order:</strong> ${displayNumber}</p><p style="margin:8px 0 0"><strong>Total:</strong> $${order.order_total.toFixed(2)} (${cryptoCoin})</p><p style="margin:8px 0 0"><strong>Status:</strong> Pending Verification</p></div><h3>Customer</h3><p>${order.customer_name}<br>${email}<br>${phone || 'No phone'}</p><h3>Ship To</h3><p>${order.shipping_address.line1}${order.shipping_address.line2 ? ', ' + order.shipping_address.line2 : ''}<br>${order.shipping_address.city}, ${order.shipping_address.state} ${order.shipping_address.zip}</p><h3>Items</h3><p>${itemList}</p></body></html>`,
+    })
+  } catch (e) { console.error('Admin email failed:', e) }
+
+  return NextResponse.json({ success: true, orderNumber: displayNumber })
+}
