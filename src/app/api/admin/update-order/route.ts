@@ -30,10 +30,18 @@ export async function POST(request: Request) {
     )
   }
 
-  // Update the status and read the order back so we have the email + number.
+  // Build the update. Tracking fields are only written when shipping, so other
+  // status changes never depend on those columns existing.
+  const updatePayload: Record<string, unknown> = { status }
+  if (status === 'shipped') {
+    updatePayload.carrier = carrier || null
+    updatePayload.tracking_number = trackingNumber || null
+  }
+
+  // Update the order and read it back so we have the email + number.
   const { data: order, error } = await admin
     .from('orders')
-    .update({ status })
+    .update(updatePayload)
     .eq('id', orderId)
     .select()
     .single()

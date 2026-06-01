@@ -23,6 +23,8 @@ interface Order {
   shipping_address: { line1?: string; line2?: string | null; city?: string; state?: string; zip?: string } | null
   order_items: OrderItem[] | null
   screenshotUrl: string | null
+  tracking_number: string | null
+  carrier: string | null
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -131,6 +133,12 @@ export default function OrdersAdmin({ orders }: { orders: Order[] }) {
                         </span>
                       </div>
                       <p className="text-xs text-gray-400 mt-1">{formatDate(order.created_at)}</p>
+                      {(order.tracking_number || order.carrier) && (
+                        <p className="text-xs text-gray-600 mt-1">
+                          📦 {order.carrier || 'Carrier'} ·{' '}
+                          <span className="font-mono">{order.tracking_number || '—'}</span>
+                        </p>
+                      )}
                     </div>
                     <div className="text-right">
                       <p className="text-xl font-extrabold text-blue-600">${Number(order.order_total).toFixed(2)}</p>
