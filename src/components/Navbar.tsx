@@ -41,6 +41,12 @@ export default function Navbar() {
                 </span>
               )}
             </button>
+            <Link
+              href="/account/orders"
+              className="text-sm font-medium text-gray-600 hover:text-[#2d3ca5] transition"
+            >
+              My Orders
+            </Link>
             <button
               onClick={handleSignOut}
               className="text-sm font-medium text-gray-600 hover:text-[#2d3ca5] transition"
