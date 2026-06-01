@@ -55,14 +55,18 @@ export default function OrdersAdmin({ orders }: { orders: Order[] }) {
   const [busyId, setBusyId] = useState<string | null>(null)
   const [error, setError] = useState('')
 
-  async function updateStatus(orderId: string, status: string) {
+  async function updateStatus(
+    orderId: string,
+    status: string,
+    extra?: { trackingNumber?: string; carrier?: string },
+  ) {
     setBusyId(orderId)
     setError('')
     try {
       const res = await fetch('/api/admin/update-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId, status }),
+        body: JSON.stringify({ orderId, status, ...extra }),
       })
       if (!res.ok) {
         const json = await res.json().catch(() => ({}))
@@ -199,7 +203,16 @@ export default function OrdersAdmin({ orders }: { orders: Order[] }) {
                       Mark Verified
                     </button>
                     <button
-                      onClick={() => updateStatus(order.id, 'shipped')}
+                      onClick={() => {
+                        const carrier = window.prompt('Carrier (e.g. USPS, UPS, FedEx, DHL):', '')
+                        if (carrier === null) return // cancelled
+                        const trackingNumber = window.prompt('Tracking number:', '')
+                        if (trackingNumber === null) return // cancelled
+                        updateStatus(order.id, 'shipped', {
+                          carrier: carrier.trim(),
+                          trackingNumber: trackingNumber.trim(),
+                        })
+                      }}
                       disabled={busy || order.status === 'shipped'}
                       className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
                     >
