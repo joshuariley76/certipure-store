@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { CartItem } from '@/lib/types'
 
@@ -26,8 +26,12 @@ const MIN_QTY = 1
 const MAX_QTY = 10
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const supabaseRef = useRef(createClient())
-  const supabase = supabaseRef.current
+  // The shared, cookie-based browser client — the same single instance the
+  // navbar, sign-in modal, and checkout use. createClient() returns a cached
+  // client, so this does not spin up a competing auth instance. Using this
+  // client (rather than the localStorage-based singleton) is what lets the cart
+  // see the logged-in session, which lives in cookies.
+  const supabase = createClient()
 
   const [items, setItems] = useState<CartItem[]>([])
   const [userId, setUserId] = useState<string | null>(null)
@@ -54,24 +58,30 @@ export function CartProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false
 
-    ;(async () => {
-      const { data: { user } } = await supabase.auth.getUser()
+    // Initial load: wait for the session that's already stored (in the cookie)
+    // to be read before deciding whether anyone is signed in. getSession()
+    // reads the existing session rather than forcing a fresh network check.
+    supabase.auth.getSession().then(({ data: { session } }) => {
       if (cancelled) return
-      if (user) {
-        setUserId(user.id)
-        await fetchCart(user.id)
-      } else {
-        setUserId(null)
-        setItems([])
-      }
+      const uid = session?.user?.id ?? null
+      setUserId(uid)
+      if (uid) fetchCart(uid)
+      else setItems([])
       setIsLoading(false)
-    })()
+    })
 
-    const { data: sub } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      const newUid = session?.user?.id ?? null
-      setUserId(newUid)
-      if (newUid) {
-        await fetchCart(newUid)
+    // Stay in sync with sign-in, sign-out, and token refreshes. We take the
+    // user from the session the listener hands us — not a separate getUser()
+    // call. The cart fetch is deferred with setTimeout so we don't query
+    // Supabase from inside this callback while it still holds the auth lock
+    // (doing so can deadlock).
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      const uid = session?.user?.id ?? null
+      setUserId(uid)
+      if (uid) {
+        setTimeout(() => {
+          if (!cancelled) fetchCart(uid)
+        }, 0)
       } else {
         setItems([])
         setIsDrawerOpen(false)

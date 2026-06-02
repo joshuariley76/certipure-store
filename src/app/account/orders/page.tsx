@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase/client'
 
 // One line item inside an order. `product_name_snapshot` is the product name as
 // it was when the order was placed; `products` is the live product (used for
@@ -64,6 +64,9 @@ export default function MyOrdersPage() {
 
   useEffect(() => {
     let active = true
+    // Shared cookie-based client — the same one the navbar/sign-in use, so it
+    // can see the logged-in session (which lives in cookies, not localStorage).
+    const supabase = createClient()
 
     async function load() {
       // Only logged-in customers may see their orders.
