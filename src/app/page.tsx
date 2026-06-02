@@ -6,7 +6,7 @@ import FeaturedCarousel from '@/components/FeaturedCarousel'
 export const dynamic = 'force-dynamic'
 
 async function getFeaturedProducts() {
-  const { data, error } = await supabase.from('products').select('*').eq('is_active', true).eq('is_featured', true)
+  const { data, error } = await supabase.from('products').select('*').not('featured_order', 'is', null).order('featured_order', { ascending: true })
   if (error) console.error('Featured error:', error.message)
   return data || []
 }
