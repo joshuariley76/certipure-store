@@ -25,7 +25,23 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     ? `${product.name} (${strength}) | CertiPure Research Peptides`
     : `${product.name} | CertiPure Research Peptides`
   const description = (product.short_description || '').slice(0, 160)
-  return { title, description }
+  // The per-product share image comes from the sibling opengraph-image.tsx.
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      url: `/product/${slug}`,
+      siteName: 'CertiPure',
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+    },
+  }
 }
 
 async function getCOAs(productId: string) {

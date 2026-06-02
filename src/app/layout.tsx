@@ -11,11 +11,28 @@ import { createClient } from "@/lib/supabase/server"
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://certipure.net"
 
+const SITE_TITLE = "CertiPure — Premium Research Peptides"
+const SITE_DESCRIPTION =
+  "Lab-tested research peptides with independent third-party COA verification. Shop BPC-157, GLP-3, TB-500, NAD+ and more."
+
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: "CertiPure — Premium Research Peptides",
-  description:
-    "Lab-tested research peptides with independent third-party COA verification. Shop BPC-157, GLP-3, TB-500, NAD+ and more.",
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
+  // The share image itself is provided by src/app/opengraph-image.tsx, which
+  // Next.js wires in automatically.
+  openGraph: {
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    url: SITE_URL,
+    siteName: "CertiPure",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+  },
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
