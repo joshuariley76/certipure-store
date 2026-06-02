@@ -57,11 +57,20 @@ function QuantityStepper({
 function AddToCartButton({
   state,
   onClick,
+  outOfStock,
 }: {
   state: AddState
   onClick: () => void
+  outOfStock?: boolean
 }) {
   const base = 'w-full font-semibold py-3.5 rounded-xl transition text-base'
+  if (outOfStock) {
+    return (
+      <button type="button" disabled className={`${base} bg-gray-200 text-gray-500 cursor-not-allowed`}>
+        Out of Stock
+      </button>
+    )
+  }
   if (state === 'success') {
     return (
       <button type="button" disabled className={`${base} bg-green-600 text-white`}>
@@ -87,7 +96,7 @@ function AddToCartButton({
   )
 }
 
-export default function PackSelector({ product }: { product: any }) {
+export default function PackSelector({ product, outOfStock = false }: { product: any; outOfStock?: boolean }) {
   const [selectedPack, setSelectedPack] = useState<PackSize>(1)
   const [quantity, setQuantity] = useState<number>(1)
   const [addState, setAddState] = useState<AddState>('idle')
@@ -107,7 +116,7 @@ export default function PackSelector({ product }: { product: any }) {
   const total = unitPrice * quantity
 
   const handleAdd = async () => {
-    if (addState === 'loading') return
+    if (addState === 'loading' || outOfStock) return
     setAddError(null)
     setAddState('loading')
     try {
@@ -129,7 +138,7 @@ export default function PackSelector({ product }: { product: any }) {
         <span className="text-4xl font-extrabold text-[#2d3ca5] block mb-6">${total}</span>
         <p className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">Quantity</p>
         <QuantityStepper quantity={quantity} setQuantity={setQuantity} />
-        <AddToCartButton state={addState} onClick={handleAdd} />
+        <AddToCartButton state={addState} onClick={handleAdd} outOfStock={outOfStock} />
         {addError && <p className="mt-3 text-sm text-red-600">{addError}</p>}
       </div>
     )
@@ -192,7 +201,7 @@ export default function PackSelector({ product }: { product: any }) {
       <p className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">Quantity</p>
       <QuantityStepper quantity={quantity} setQuantity={setQuantity} />
 
-      <AddToCartButton state={addState} onClick={handleAdd} />
+      <AddToCartButton state={addState} onClick={handleAdd} outOfStock={outOfStock} />
       {addError && <p className="mt-3 text-sm text-red-600">{addError}</p>}
     </div>
   )

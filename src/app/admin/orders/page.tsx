@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { isAdminAuthenticated } from '@/lib/admin-auth'
 import { createAdminClient } from '@/lib/supabase/admin'
-import OrdersAdmin from './OrdersAdmin'
+import AdminDashboard from './AdminDashboard'
 
 export const dynamic = 'force-dynamic'
 
@@ -71,5 +71,11 @@ export default async function AdminOrdersPage() {
     }),
   )
 
-  return <OrdersAdmin orders={withScreenshots} />
+  // Products for the Inventory tab.
+  const { data: products } = await admin
+    .from('products')
+    .select('id, name, sku, stock_quantity')
+    .order('name')
+
+  return <AdminDashboard orders={withScreenshots} products={products || []} />
 }

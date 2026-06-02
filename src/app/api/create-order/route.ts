@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { resend } from '@/lib/resend'
 
 // Where admin notifications go, and who emails are sent from. The certipure.net
@@ -117,6 +118,32 @@ export async function POST(request: Request) {
 
   const { error: itemsError } = await supabase.from('order_items').insert(orderItems)
   if (itemsError) console.error('Order items insert error:', itemsError)
+
+  // Deduct stock for each item. We use the service-role client because the
+  // customer's own session can't update the products table (row-level
+  // security). This is best-effort: a stock-update failure is logged but never
+  // blocks the order. Stock is counted in vials, so we subtract quantity ×
+  // pack_size, clamped at 0 so it can never go negative.
+  const admin = createAdminClient()
+  if (admin) {
+    for (const item of cartItems as any[]) {
+      const units = item.quantity * item.pack_size
+      const { data: prod, error: readErr } = await admin
+        .from('products')
+        .select('stock_quantity')
+        .eq('id', item.product_id)
+        .single()
+      if (readErr || !prod || typeof prod.stock_quantity !== 'number') continue
+      const newQty = Math.max(0, prod.stock_quantity - units)
+      const { error: stockErr } = await admin
+        .from('products')
+        .update({ stock_quantity: newQty })
+        .eq('id', item.product_id)
+      if (stockErr) console.error('Stock deduction error:', stockErr.message)
+    }
+  } else {
+    console.error('Stock not deducted: service role key not configured.')
+  }
 
   // Clear cart
   await supabase.from('cart_items').delete().eq('user_id', user.id)

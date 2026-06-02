@@ -23,6 +23,13 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
   const coas = await getCOAs(product.id)
 
+  // Stock state. A null/undefined stock_quantity is treated as "in stock" (the
+  // column simply isn't tracked for that product). 0 = out of stock; 1–10 = low.
+  const stock: number | null =
+    typeof product.stock_quantity === 'number' ? product.stock_quantity : null
+  const outOfStock = stock === 0
+  const lowStock = stock !== null && stock > 0 && stock <= 10
+
   return (
     <main className="bg-white min-h-screen">
       <div className="max-w-6xl mx-auto px-4 py-6">
@@ -41,8 +48,18 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             <p className="text-sm text-[#2d3ca5] font-semibold uppercase tracking-wider mb-2">{product.category?.name || 'Peptide'}</p>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">{product.name}</h1>
             <p className="text-gray-400 text-sm mb-4">{product.size}{product.unit} • SKU: {product.sku}</p>
+            {outOfStock && (
+              <span className="inline-block text-xs font-bold px-3 py-1 rounded-full bg-red-100 text-red-700 mb-4">
+                Out of Stock
+              </span>
+            )}
+            {lowStock && (
+              <span className="inline-block text-xs font-bold px-3 py-1 rounded-full bg-amber-100 text-amber-800 mb-4">
+                Low Stock — only {stock} left
+              </span>
+            )}
             <p className="text-gray-600 text-sm leading-relaxed mb-6">{product.description}</p>
-            <PackSelector product={product} />
+            <PackSelector product={product} outOfStock={outOfStock} />
           </div>
         </div>
         {coas.length > 0 && (
