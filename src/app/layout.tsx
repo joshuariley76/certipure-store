@@ -9,9 +9,13 @@ import CartDrawer from "@/components/CartDrawer"
 import { CartProvider } from "@/lib/cart-context"
 import { createClient } from "@/lib/supabase/server"
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://certipure.net"
+
 export const metadata: Metadata = {
-  title: "CertiPure — Research Peptides | 99%+ Purity, Third-Party Tested",
-  description: "Research peptides with 99%+ purity. Every batch third-party lab tested with COAs available.",
+  metadataBase: new URL(SITE_URL),
+  title: "CertiPure — Premium Research Peptides",
+  description:
+    "Lab-tested research peptides with independent third-party COA verification. Shop BPC-157, GLP-3, TB-500, NAD+ and more.",
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { supabase } from '@/lib/supabase'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
@@ -9,6 +10,22 @@ export const dynamic = 'force-dynamic'
 async function getProduct(slug: string) {
   const { data } = await supabase.from('products').select('*, category:categories(id, name, slug)').eq('slug', slug).eq('is_active', true).single()
   return data
+}
+
+// Unique <title> and meta description per product, for search engines and link
+// previews. Title: "Name (Strength) | CertiPure Research Peptides".
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params
+  const product = await getProduct(slug)
+  if (!product) {
+    return { title: 'Product Not Found | CertiPure Research Peptides' }
+  }
+  const strength = `${product.size ?? ''}${product.unit ?? ''}`
+  const title = strength
+    ? `${product.name} (${strength}) | CertiPure Research Peptides`
+    : `${product.name} | CertiPure Research Peptides`
+  const description = (product.short_description || '').slice(0, 160)
+  return { title, description }
 }
 
 async function getCOAs(productId: string) {
