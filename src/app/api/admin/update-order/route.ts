@@ -3,7 +3,7 @@ import { isAdminAuthenticated } from '@/lib/admin-auth'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resend } from '@/lib/resend'
 
-const ALLOWED_STATUSES = ['pending_verification', 'verified', 'shipped', 'cancelled']
+const ALLOWED_STATUSES = ['pending_verification', 'payment_verified', 'verified', 'shipped', 'cancelled']
 const ORDERS_FROM = 'CertiPure Orders <noreply@certipure.net>'
 
 // Shared dark-navy header + white body shell, matching the existing order
@@ -50,9 +50,9 @@ export async function POST(request: Request) {
   }
 
   // Notify the customer when payment is verified. (Your app's status for this
-  // is "verified" — the "Mark Verified" button.) Wrapped in try/catch so a
-  // failed email never blocks the status update.
-  if (status === 'verified' && order.customer_email) {
+  // is "payment_verified" — the "Mark Verified" button.) Wrapped in try/catch
+  // so a failed email never blocks the status update.
+  if (status === 'payment_verified' && order.customer_email) {
     try {
       await resend.emails.send({
         from: ORDERS_FROM,

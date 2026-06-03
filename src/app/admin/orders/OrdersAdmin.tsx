@@ -29,14 +29,16 @@ interface Order {
 
 const STATUS_STYLES: Record<string, string> = {
   pending_verification: 'bg-amber-100 text-amber-800',
-  verified: 'bg-blue-100 text-blue-800',
+  payment_verified: 'bg-blue-100 text-blue-800',
+  verified: 'bg-blue-100 text-blue-800', // legacy orders saved before the rename
   shipped: 'bg-green-100 text-green-800',
   cancelled: 'bg-gray-200 text-gray-600',
 }
 
 const STATUS_LABEL: Record<string, string> = {
   pending_verification: 'Pending verification',
-  verified: 'Verified',
+  payment_verified: 'Verified',
+  verified: 'Verified', // legacy orders saved before the rename
   shipped: 'Shipped',
   cancelled: 'Cancelled',
 }
@@ -204,8 +206,8 @@ export default function OrdersAdmin({ orders }: { orders: Order[] }) {
                   {/* Actions */}
                   <div className="mt-5 pt-4 border-t border-gray-100 flex flex-wrap gap-2">
                     <button
-                      onClick={() => updateStatus(order.id, 'verified')}
-                      disabled={busy || order.status === 'verified'}
+                      onClick={() => updateStatus(order.id, 'payment_verified')}
+                      disabled={busy || order.status === 'payment_verified'}
                       className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
                     >
                       Mark Verified
