@@ -2,6 +2,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import btcIcon  from 'cryptocurrency-icons/128/color/btc.png';
+import ethIcon  from 'cryptocurrency-icons/128/color/eth.png';
+import usdtIcon from 'cryptocurrency-icons/128/color/usdt.png';
+import usdcIcon from 'cryptocurrency-icons/128/color/usdc.png';
+import solIcon  from 'cryptocurrency-icons/128/color/sol.png';
 
 const WALLET: Record<string, string> = {
   BTC:     process.env.NEXT_PUBLIC_WALLET_BTC     || '',
@@ -11,13 +16,16 @@ const WALLET: Record<string, string> = {
   SOL:     process.env.NEXT_PUBLIC_WALLET_SOL     || '',
   CASHAPP: process.env.NEXT_PUBLIC_WALLET_CASHAPP || '',
 };
+// Each crypto option carries its official brand color (used for the coin name
+// and the selected card's border/glow) and its logo from cryptocurrency-icons.
 const COINS = [
-  { coin: 'BTC',  label: 'Bitcoin',        network: 'Bitcoin'   },
-  { coin: 'ETH',  label: 'Ethereum',        network: 'ERC-20'    },
-  { coin: 'USDT', label: 'Tether (USDT)',   network: 'ERC-20'    },
-  { coin: 'USDC', label: 'USD Coin',        network: 'ERC-20'    },
-  { coin: 'SOL',  label: 'Solana',          network: 'Solana'    },
+  { coin: 'BTC',  label: 'Bitcoin',      network: 'Bitcoin', color: '#F7931A', icon: btcIcon.src  },
+  { coin: 'ETH',  label: 'Ethereum',     network: 'ERC-20',  color: '#627EEA', icon: ethIcon.src  },
+  { coin: 'USDT', label: 'Tether',       network: 'ERC-20',  color: '#26A17B', icon: usdtIcon.src },
+  { coin: 'USDC', label: 'USD Coin',     network: 'ERC-20',  color: '#2775CA', icon: usdcIcon.src },
+  { coin: 'SOL',  label: 'Solana',       network: 'Solana',  color: '#9945FF', icon: solIcon.src  },
 ];
+const CASHAPP_COLOR = '#00D632';
 const US_STATES = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY'];
 
 interface CartItem {
@@ -172,17 +180,24 @@ export default function CheckoutClient() {
             <h2 className="text-lg font-semibold text-gray-900 mb-1">② Select Payment Method</h2>
             <p className="text-sm text-gray-500 mb-4">We accept cryptocurrency or Cash App.</p>
             <div className="flex flex-wrap gap-3">
-              {COINS.map(opt => (
-                <button key={opt.coin} type="button" onClick={() => setSelectedCoin(opt.coin)}
-                  className={`px-4 py-3 rounded-lg border-2 font-semibold transition-all text-left ${selectedCoin === opt.coin ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-700 hover:border-blue-300'}`}>
-                  <div className="text-sm font-bold">{opt.coin}</div>
-                  <div className="text-xs font-normal text-gray-500">{opt.network}</div>
-                </button>
-              ))}
+              {COINS.map(opt => {
+                const selected = selectedCoin === opt.coin;
+                return (
+                  <button key={opt.coin} type="button" onClick={() => setSelectedCoin(opt.coin)}
+                    style={selected ? { borderColor: opt.color, boxShadow: `0 0 0 3px ${opt.color}26, 0 6px 16px ${opt.color}40` } : undefined}
+                    className={`group w-[104px] flex flex-col items-center justify-center gap-2 px-3 py-4 rounded-xl border-2 bg-white transition-all ${selected ? 'scale-[1.03]' : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'}`}>
+                    <img src={opt.icon} alt={`${opt.label} logo`} width={44} height={44} className="w-11 h-11 object-contain drop-shadow-sm" />
+                    <div className="text-sm font-bold leading-tight" style={{ color: opt.color }}>{opt.label}</div>
+                    <div className="text-[11px] font-medium text-gray-400">{opt.coin} · {opt.network}</div>
+                  </button>
+                );
+              })}
               <button type="button" onClick={() => setSelectedCoin('CASHAPP')}
-                className={`px-4 py-3 rounded-lg border-2 font-semibold transition-all text-left ${selectedCoin === 'CASHAPP' ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 text-gray-700 hover:border-green-300'}`}>
-                <div className="text-sm font-bold">Cash App</div>
-                <div className="text-xs font-normal text-gray-500">$Cashtag</div>
+                style={selectedCoin === 'CASHAPP' ? { borderColor: CASHAPP_COLOR, boxShadow: `0 0 0 3px ${CASHAPP_COLOR}26, 0 6px 16px ${CASHAPP_COLOR}40` } : undefined}
+                className={`w-[104px] flex flex-col items-center justify-center gap-2 px-3 py-4 rounded-xl border-2 bg-white transition-all ${selectedCoin === 'CASHAPP' ? 'scale-[1.03]' : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'}`}>
+                <div className="w-11 h-11 rounded-full flex items-center justify-center text-white text-2xl font-extrabold drop-shadow-sm" style={{ backgroundColor: CASHAPP_COLOR }}>$</div>
+                <div className="text-sm font-bold leading-tight" style={{ color: CASHAPP_COLOR }}>Cash App</div>
+                <div className="text-[11px] font-medium text-gray-400">$Cashtag</div>
               </button>
             </div>
             {selectedCoin === 'CASHAPP' && WALLET.CASHAPP && (
