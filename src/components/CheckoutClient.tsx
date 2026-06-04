@@ -218,6 +218,11 @@ export default function CheckoutClient() {
                 No receiving address is configured for {selectedCoin} yet. (Set NEXT_PUBLIC_WALLET_{selectedCoin} in .env.local.)
               </p>
             )}
+            {selectedCoin && !COINS.some(c => c.coin === selectedCoin) && (
+              <p className="mt-4 text-sm font-bold text-white bg-red-600 border border-red-700 rounded-lg p-4">
+                ⚠️ WARNING: Do NOT include the word &lsquo;peptide&rsquo; or any product names in your payment note. Orders with flagged payment notes will be immediately cancelled.
+              </p>
+            )}
           </section>
 
           {/* Screenshot Upload */}

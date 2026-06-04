@@ -144,7 +144,7 @@ export default function OrdersAdmin({ orders }: { orders: Order[] }) {
                     </div>
                     <div className="text-right">
                       <p className="text-xl font-extrabold text-blue-600">${Number(order.order_total).toFixed(2)}</p>
-                      <p className="text-xs text-gray-500">Paid in {order.crypto_coin || '—'}</p>
+                      <p className="text-xs text-gray-500">{order.crypto_coin === 'CASHAPP' ? 'Paid via Cash App' : `Paid in ${order.crypto_coin || '—'}`}</p>
                     </div>
                   </div>
 
