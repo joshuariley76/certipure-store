@@ -2,11 +2,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import btcIcon  from 'cryptocurrency-icons/128/color/btc.png';
-import ethIcon  from 'cryptocurrency-icons/128/color/eth.png';
-import usdtIcon from 'cryptocurrency-icons/128/color/usdt.png';
-import usdcIcon from 'cryptocurrency-icons/128/color/usdc.png';
-import solIcon  from 'cryptocurrency-icons/128/color/sol.png';
 
 const WALLET: Record<string, string> = {
   BTC:     process.env.NEXT_PUBLIC_WALLET_BTC     || '',
@@ -16,16 +11,82 @@ const WALLET: Record<string, string> = {
   SOL:     process.env.NEXT_PUBLIC_WALLET_SOL     || '',
   CASHAPP: process.env.NEXT_PUBLIC_WALLET_CASHAPP || '',
 };
-// Each crypto option carries its official brand color (used for the coin name
-// and the selected card's border/glow) and its logo from cryptocurrency-icons.
+// Each crypto option carries its official brand color, used for the coin name
+// and the selected card's border/glow. The logo itself is an inline SVG drawn
+// by <CoinIcon> below — no external image files or icon packages.
 const COINS = [
-  { coin: 'BTC',  label: 'Bitcoin',      network: 'Bitcoin', color: '#F7931A', icon: btcIcon.src  },
-  { coin: 'ETH',  label: 'Ethereum',     network: 'ERC-20',  color: '#627EEA', icon: ethIcon.src  },
-  { coin: 'USDT', label: 'Tether',       network: 'ERC-20',  color: '#26A17B', icon: usdtIcon.src },
-  { coin: 'USDC', label: 'USD Coin',     network: 'ERC-20',  color: '#2775CA', icon: usdcIcon.src },
-  { coin: 'SOL',  label: 'Solana',       network: 'Solana',  color: '#9945FF', icon: solIcon.src  },
+  { coin: 'BTC',  label: 'Bitcoin',  network: 'Bitcoin', color: '#F7931A' },
+  { coin: 'ETH',  label: 'Ethereum', network: 'ERC-20',  color: '#627EEA' },
+  { coin: 'USDT', label: 'Tether',   network: 'ERC-20',  color: '#26A17B' },
+  { coin: 'USDC', label: 'USD Coin', network: 'ERC-20',  color: '#2775CA' },
+  { coin: 'SOL',  label: 'Solana',   network: 'Solana',  color: '#9945FF' },
 ];
 const CASHAPP_COLOR = '#00D632';
+
+// Inline SVG logos for each coin — fully self-contained so nothing can fail to
+// load. Each is sized by the className passed in (the cards use w-11 h-11).
+function CoinIcon({ coin, className = 'w-11 h-11' }: { coin: string; className?: string }) {
+  switch (coin) {
+    case 'BTC':
+      return (
+        <svg viewBox="0 0 40 40" className={className} aria-hidden="true">
+          <circle cx="20" cy="20" r="20" fill="#F7931A" />
+          {/* ₿ — vertical extenders top and bottom, plus the double-bumped B */}
+          <g fill="#fff">
+            <rect x="17.2" y="8.5"  width="2.3" height="23" rx="0.6" />
+            <rect x="21.0" y="8.5"  width="2.3" height="23" rx="0.6" />
+            <path d="M14 11.5h7.6c3.1 0 5.2 1.4 5.2 4.1 0 1.8-1 3-2.6 3.5 2 .4 3.3 1.7 3.3 3.8 0 3-2.3 4.6-5.8 4.6H14V11.5zm3.4 2.7v4.1h3.4c1.5 0 2.5-.7 2.5-2.1 0-1.3-.9-2-2.5-2h-3.4zm0 6.6v4.4h3.8c1.7 0 2.7-.8 2.7-2.2 0-1.5-1.1-2.2-2.9-2.2h-3.6z" />
+          </g>
+        </svg>
+      );
+    case 'ETH':
+      return (
+        // Official Ethereum diamond, single-hue #627EEA with faceted opacities.
+        <svg viewBox="0 0 256 417" className={className} aria-hidden="true">
+          <polygon fill="#627EEA" fillOpacity="0.6"  points="127.96 0 125.17 9.5 125.17 285.17 127.96 287.96 255.92 212.32" />
+          <polygon fill="#627EEA"                     points="127.96 0 0 212.32 127.96 287.96 127.96 154.16" />
+          <polygon fill="#627EEA" fillOpacity="0.6"  points="127.96 312.19 126.39 314.11 126.39 412.31 127.96 416.91 255.99 236.59" />
+          <polygon fill="#627EEA"                     points="127.96 416.91 127.96 312.19 0 236.59" />
+          <polygon fill="#627EEA" fillOpacity="0.2"  points="127.96 287.96 255.92 212.32 127.96 154.16" />
+          <polygon fill="#627EEA" fillOpacity="0.45" points="0 212.32 127.96 287.96 127.96 154.16" />
+        </svg>
+      );
+    case 'USDT':
+      return (
+        <svg viewBox="0 0 40 40" className={className} aria-hidden="true">
+          <circle cx="20" cy="20" r="20" fill="#26A17B" />
+          {/* ₮ — top bar, centre stem, and the lower cross-stroke */}
+          <g fill="#fff">
+            <rect x="10" y="11"   width="20"  height="3.4" rx="0.5" />
+            <rect x="17.6" y="11" width="4.8" height="18"  rx="0.5" />
+            <rect x="13.5" y="17.6" width="13" height="3.2" rx="0.5" />
+          </g>
+        </svg>
+      );
+    case 'USDC':
+      return (
+        <svg viewBox="0 0 40 40" className={className} aria-hidden="true">
+          <circle cx="20" cy="20" r="20" fill="#2775CA" />
+          <text x="20" y="20.5" textAnchor="middle" dominantBaseline="central"
+            fontFamily="Arial, Helvetica, sans-serif" fontSize="24" fontWeight="700" fill="#fff">$</text>
+        </svg>
+      );
+    case 'SOL':
+      return (
+        // Solana's three slanted bars, rendered in a single purple (#9945FF).
+        <svg viewBox="0 0 40 40" className={className} aria-hidden="true">
+          <circle cx="20" cy="20" r="20" fill="#9945FF" />
+          <g fill="#fff">
+            <polygon points="13 13 31 13 27 17 9 17" />
+            <polygon points="9 19 27 19 31 23 13 23" />
+            <polygon points="13 25 31 25 27 29 9 29" />
+          </g>
+        </svg>
+      );
+    default:
+      return null;
+  }
+}
 const US_STATES = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY'];
 
 interface CartItem {
@@ -186,7 +247,7 @@ export default function CheckoutClient() {
                   <button key={opt.coin} type="button" onClick={() => setSelectedCoin(opt.coin)}
                     style={selected ? { borderColor: opt.color, boxShadow: `0 0 0 3px ${opt.color}26, 0 6px 16px ${opt.color}40` } : undefined}
                     className={`group w-[104px] flex flex-col items-center justify-center gap-2 px-3 py-4 rounded-xl border-2 bg-white transition-all ${selected ? 'scale-[1.03]' : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'}`}>
-                    <img src={opt.icon} alt={`${opt.label} logo`} width={44} height={44} className="w-11 h-11 object-contain drop-shadow-sm" />
+                    <CoinIcon coin={opt.coin} className="w-11 h-11 drop-shadow-sm" />
                     <div className="text-sm font-bold leading-tight" style={{ color: opt.color }}>{opt.label}</div>
                     <div className="text-[11px] font-medium text-gray-400">{opt.coin} · {opt.network}</div>
                   </button>
