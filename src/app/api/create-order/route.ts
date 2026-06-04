@@ -35,6 +35,13 @@ export async function POST(request: Request) {
   const cryptoCoin  = formData.get('cryptoCoin') as string
   const screenshot  = formData.get('screenshot') as File
 
+  // The payment selection arrives in the same `cryptoCoin` field for every
+  // method. Cash App is the one non-crypto option, so we translate it into a
+  // proper payment_method and a human-friendly label for the emails.
+  const isCashApp    = cryptoCoin === 'CASHAPP'
+  const paymentMethod = isCashApp ? 'cashapp' : 'crypto'
+  const methodLabel   = isCashApp ? 'Cash App' : cryptoCoin
+
   if (!firstName || !lastName || !email || !address1 || !city || !state || !zip || !cryptoCoin || !screenshot) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
@@ -86,7 +93,7 @@ export async function POST(request: Request) {
       customer_email: email,
       customer_phone: phone || null,
       shipping_address: { line1: address1, line2: address2 || null, city, state, zip, country: 'US' },
-      payment_method: 'crypto',
+      payment_method: paymentMethod,
       crypto_coin: cryptoCoin,
       screenshot_url: uploadData.path,
       subtotal,
@@ -155,7 +162,7 @@ export async function POST(request: Request) {
       from: ORDERS_FROM,
       to: email,
       subject: `Order Received — ${displayNumber}`,
-      html: `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;color:#333"><div style="background:#0f172a;padding:24px;border-radius:8px 8px 0 0;text-align:center"><h1 style="color:#fff;margin:0">CertiPure</h1><p style="color:#94a3b8;margin:8px 0 0">Research Peptides</p></div><div style="background:#fff;padding:32px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px"><h2 style="color:#0f172a;margin-top:0">Order Received</h2><p>Thank you! We received your payment screenshot and will verify your ${order.crypto_coin} transaction within 1–4 hours.</p><div style="background:#f8fafc;padding:16px;border-radius:6px;margin:20px 0"><p style="margin:0;font-size:14px;color:#64748b">Order Number</p><p style="margin:4px 0 0;font-size:20px;font-weight:bold;color:#0f172a">${displayNumber}</p></div><h3>Order Summary</h3><table style="width:100%;border-collapse:collapse"><thead><tr style="background:#f8fafc"><th style="padding:8px;text-align:left;font-size:13px;color:#64748b">Item</th><th style="padding:8px;text-align:center;font-size:13px;color:#64748b">Qty</th><th style="padding:8px;text-align:right;font-size:13px;color:#64748b">Price</th></tr></thead><tbody>${itemRows}</tbody><tfoot><tr><td colspan="2" style="padding:12px 8px 8px;font-weight:bold;text-align:right">Total:</td><td style="padding:12px 8px 8px;font-weight:bold;text-align:right">$${order.order_total.toFixed(2)}</td></tr></tfoot></table><h3>Shipping To</h3><p style="margin:0">${order.customer_name}<br>${order.shipping_address.line1}${order.shipping_address.line2 ? '<br>' + order.shipping_address.line2 : ''}<br>${order.shipping_address.city}, ${order.shipping_address.state} ${order.shipping_address.zip}</p><div style="margin-top:24px;padding:16px;background:#fffbeb;border:1px solid #fbbf24;border-radius:6px"><p style="margin:0;font-size:14px"><strong>What's next?</strong> Once payment is verified we'll email you a shipping confirmation with tracking. Most orders ship within 1–2 business days.</p></div><p style="margin-top:24px;font-size:13px;color:#64748b">Questions? Email support@certipure.net<br><br><em>All products sold for research purposes only. Not for human consumption.</em></p></div></body></html>`,
+      html: `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;color:#333"><div style="background:#0f172a;padding:24px;border-radius:8px 8px 0 0;text-align:center"><h1 style="color:#fff;margin:0">CertiPure</h1><p style="color:#94a3b8;margin:8px 0 0">Research Peptides</p></div><div style="background:#fff;padding:32px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px"><h2 style="color:#0f172a;margin-top:0">Order Received</h2><p>Thank you! We received your payment screenshot and will verify your ${methodLabel} payment within 1–4 hours.</p><div style="background:#f8fafc;padding:16px;border-radius:6px;margin:20px 0"><p style="margin:0;font-size:14px;color:#64748b">Order Number</p><p style="margin:4px 0 0;font-size:20px;font-weight:bold;color:#0f172a">${displayNumber}</p></div><h3>Order Summary</h3><table style="width:100%;border-collapse:collapse"><thead><tr style="background:#f8fafc"><th style="padding:8px;text-align:left;font-size:13px;color:#64748b">Item</th><th style="padding:8px;text-align:center;font-size:13px;color:#64748b">Qty</th><th style="padding:8px;text-align:right;font-size:13px;color:#64748b">Price</th></tr></thead><tbody>${itemRows}</tbody><tfoot><tr><td colspan="2" style="padding:12px 8px 8px;font-weight:bold;text-align:right">Total:</td><td style="padding:12px 8px 8px;font-weight:bold;text-align:right">$${order.order_total.toFixed(2)}</td></tr></tfoot></table><h3>Shipping To</h3><p style="margin:0">${order.customer_name}<br>${order.shipping_address.line1}${order.shipping_address.line2 ? '<br>' + order.shipping_address.line2 : ''}<br>${order.shipping_address.city}, ${order.shipping_address.state} ${order.shipping_address.zip}</p><div style="margin-top:24px;padding:16px;background:#fffbeb;border:1px solid #fbbf24;border-radius:6px"><p style="margin:0;font-size:14px"><strong>What's next?</strong> Once payment is verified we'll email you a shipping confirmation with tracking. Most orders ship within 1–2 business days.</p></div><p style="margin-top:24px;font-size:13px;color:#64748b">Questions? Email support@certipure.net<br><br><em>All products sold for research purposes only. Not for human consumption.</em></p></div></body></html>`,
     })
   } catch (e) { console.error('Customer email failed:', e) }
 
@@ -165,8 +172,8 @@ export async function POST(request: Request) {
     await resend.emails.send({
       from: ORDERS_FROM,
       to: ADMIN_EMAIL,
-      subject: `🔔 New Order — ${displayNumber} (${cryptoCoin})`,
-      html: `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;color:#333"><h2>🔔 New Order Received</h2><div style="background:#f8fafc;padding:16px;border-radius:6px;margin:16px 0"><p style="margin:0"><strong>Order:</strong> ${displayNumber}</p><p style="margin:8px 0 0"><strong>Total:</strong> $${order.order_total.toFixed(2)} (${cryptoCoin})</p><p style="margin:8px 0 0"><strong>Status:</strong> Pending Verification</p></div><h3>Customer</h3><p>${order.customer_name}<br>${email}<br>${phone || 'No phone'}</p><h3>Ship To</h3><p>${order.shipping_address.line1}${order.shipping_address.line2 ? ', ' + order.shipping_address.line2 : ''}<br>${order.shipping_address.city}, ${order.shipping_address.state} ${order.shipping_address.zip}</p><h3>Items</h3><p>${itemList}</p></body></html>`,
+      subject: `🔔 New Order — ${displayNumber} (${methodLabel})`,
+      html: `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;color:#333"><h2>🔔 New Order Received</h2><div style="background:#f8fafc;padding:16px;border-radius:6px;margin:16px 0"><p style="margin:0"><strong>Order:</strong> ${displayNumber}</p><p style="margin:8px 0 0"><strong>Total:</strong> $${order.order_total.toFixed(2)} (${methodLabel})</p><p style="margin:8px 0 0"><strong>Status:</strong> Pending Verification</p></div><h3>Customer</h3><p>${order.customer_name}<br>${email}<br>${phone || 'No phone'}</p><h3>Ship To</h3><p>${order.shipping_address.line1}${order.shipping_address.line2 ? ', ' + order.shipping_address.line2 : ''}<br>${order.shipping_address.city}, ${order.shipping_address.state} ${order.shipping_address.zip}</p><h3>Items</h3><p>${itemList}</p></body></html>`,
     })
   } catch (e) { console.error('Admin email failed:', e) }
 

@@ -4,11 +4,12 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
 const WALLET: Record<string, string> = {
-  BTC:  process.env.NEXT_PUBLIC_WALLET_BTC  || '',
-  ETH:  process.env.NEXT_PUBLIC_WALLET_ETH  || '',
-  USDT: process.env.NEXT_PUBLIC_WALLET_USDT || '',
-  USDC: process.env.NEXT_PUBLIC_WALLET_USDC || '',
-  SOL:  process.env.NEXT_PUBLIC_WALLET_SOL  || '',
+  BTC:     process.env.NEXT_PUBLIC_WALLET_BTC     || '',
+  ETH:     process.env.NEXT_PUBLIC_WALLET_ETH     || '',
+  USDT:    process.env.NEXT_PUBLIC_WALLET_USDT    || '',
+  USDC:    process.env.NEXT_PUBLIC_WALLET_USDC    || '',
+  SOL:     process.env.NEXT_PUBLIC_WALLET_SOL     || '',
+  CASHAPP: process.env.NEXT_PUBLIC_WALLET_CASHAPP || '',
 };
 const COINS = [
   { coin: 'BTC',  label: 'Bitcoin',        network: 'Bitcoin'   },
@@ -169,7 +170,7 @@ export default function CheckoutClient() {
           {/* Payment */}
           <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-1">② Select Payment Method</h2>
-            <p className="text-sm text-gray-500 mb-4">We accept cryptocurrency only.</p>
+            <p className="text-sm text-gray-500 mb-4">We accept cryptocurrency or Cash App.</p>
             <div className="flex flex-wrap gap-3">
               {COINS.map(opt => (
                 <button key={opt.coin} type="button" onClick={() => setSelectedCoin(opt.coin)}
@@ -178,8 +179,27 @@ export default function CheckoutClient() {
                   <div className="text-xs font-normal text-gray-500">{opt.network}</div>
                 </button>
               ))}
+              <button type="button" onClick={() => setSelectedCoin('CASHAPP')}
+                className={`px-4 py-3 rounded-lg border-2 font-semibold transition-all text-left ${selectedCoin === 'CASHAPP' ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 text-gray-700 hover:border-green-300'}`}>
+                <div className="text-sm font-bold">Cash App</div>
+                <div className="text-xs font-normal text-gray-500">$Cashtag</div>
+              </button>
             </div>
-            {selectedCoin && WALLET[selectedCoin] && (
+            {selectedCoin === 'CASHAPP' && WALLET.CASHAPP && (
+              <div className="mt-5 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                <p className="text-sm font-medium text-gray-600 mb-2">Send <strong className="text-gray-900">exactly ${subtotal.toFixed(2)}</strong> via Cash App to this $Cashtag:</p>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 bg-white border border-gray-300 rounded-lg px-3 py-2.5 text-sm font-mono text-gray-800 break-all">{WALLET.CASHAPP}</code>
+                  <button type="button" onClick={copyAddress} className="shrink-0 bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium">
+                    {copied ? '✓ Copied' : 'Copy'}
+                  </button>
+                </div>
+                <p className="mt-3 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">
+                  ⚠️ Open Cash App and send <strong>exactly ${subtotal.toFixed(2)}</strong> (the order total) to {WALLET.CASHAPP}. Then upload your payment screenshot below.
+                </p>
+              </div>
+            )}
+            {selectedCoin && selectedCoin !== 'CASHAPP' && WALLET[selectedCoin] && (
               <div className="mt-5 p-4 bg-gray-50 rounded-xl border border-gray-200">
                 <p className="text-sm font-medium text-gray-600 mb-2">Send <strong className="text-gray-900">${subtotal.toFixed(2)} USD in {selectedCoin}</strong> to this address:</p>
                 <div className="flex items-center gap-2">
