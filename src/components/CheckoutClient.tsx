@@ -23,6 +23,10 @@ const COINS = [
 ];
 const CASHAPP_COLOR = '#00D632';
 
+// Shipping rules — keep in sync with api/create-order/route.ts.
+const FREE_SHIPPING_THRESHOLD = 300;   // orders at/above this ship free
+const FLAT_SHIPPING = 12.99;           // flat rate below the threshold
+
 // Inline SVG logos for each coin — fully self-contained so nothing can fail to
 // load. Each is sized by the className passed in (the cards use w-11 h-11).
 function CoinIcon({ coin, className = 'w-11 h-11' }: { coin: string; className?: string }) {
@@ -126,6 +130,13 @@ export default function CheckoutClient() {
   }
 
   const subtotal = cartItems.reduce((s, i) => s + i.price_at_add * i.quantity, 0);
+  // Shipping: free at $300+, otherwise a $12.99 flat rate. The server
+  // (api/create-order) recomputes this same logic so the stored total is
+  // authoritative — these values are just for display here.
+  const shipping        = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : FLAT_SHIPPING;
+  const total           = subtotal + shipping;
+  const remainingForFree = Math.max(0, FREE_SHIPPING_THRESHOLD - subtotal);
+  const freeShipProgress = Math.min(100, (subtotal / FREE_SHIPPING_THRESHOLD) * 100);
   const handle   = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
   function onFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -185,9 +196,36 @@ export default function CheckoutClient() {
                 </div>
               ))}
             </div>
-            <div className="mt-4 pt-4 border-t border-gray-200 flex justify-between items-center">
-              <span className="text-lg font-bold text-gray-900">Total</span>
-              <span className="text-2xl font-bold text-blue-600">${subtotal.toFixed(2)}</span>
+            <div className="mt-4 pt-4 border-t border-gray-200 space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Subtotal</span>
+                <span className="font-medium text-gray-900">${subtotal.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-sm items-center">
+                <span className="text-gray-600">Shipping</span>
+                {shipping === 0
+                  ? <span className="font-bold text-green-600">FREE</span>
+                  : <span className="font-medium text-gray-900">${shipping.toFixed(2)}</span>}
+              </div>
+
+              {/* Free-shipping progress — only while under the threshold */}
+              {remainingForFree > 0 ? (
+                <div className="pt-1">
+                  <p className="text-xs font-medium text-blue-700 mb-1.5">
+                    Add <strong>${remainingForFree.toFixed(2)}</strong> more for <strong>FREE shipping!</strong>
+                  </p>
+                  <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div className="h-full bg-green-500 rounded-full transition-all duration-300" style={{ width: `${freeShipProgress}%` }} />
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs font-semibold text-green-700 pt-1">🎉 You&rsquo;ve unlocked FREE shipping!</p>
+              )}
+
+              <div className="pt-3 mt-1 border-t border-gray-200 flex justify-between items-center">
+                <span className="text-lg font-bold text-gray-900">Total</span>
+                <span className="text-2xl font-bold text-blue-600">${total.toFixed(2)}</span>
+              </div>
             </div>
           </section>
 
@@ -263,7 +301,7 @@ export default function CheckoutClient() {
             </div>
             {selectedCoin === 'CASHAPP' && WALLET.CASHAPP && (
               <div className="mt-5 p-4 bg-gray-50 rounded-xl border border-gray-200">
-                <p className="text-sm font-medium text-gray-600 mb-2">Send <strong className="text-gray-900">exactly ${subtotal.toFixed(2)}</strong> via Cash App to this $Cashtag:</p>
+                <p className="text-sm font-medium text-gray-600 mb-2">Send <strong className="text-gray-900">exactly ${total.toFixed(2)}</strong> via Cash App to this $Cashtag:</p>
                 <div className="flex items-center gap-2">
                   <code className="flex-1 bg-white border border-gray-300 rounded-lg px-3 py-2.5 text-sm font-mono text-gray-800 break-all">{WALLET.CASHAPP}</code>
                   <button type="button" onClick={copyAddress} className="shrink-0 bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium">
@@ -271,13 +309,13 @@ export default function CheckoutClient() {
                   </button>
                 </div>
                 <p className="mt-3 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">
-                  ⚠️ Open Cash App and send <strong>exactly ${subtotal.toFixed(2)}</strong> (the order total) to {WALLET.CASHAPP}. Then upload your payment screenshot below.
+                  ⚠️ Open Cash App and send <strong>exactly ${total.toFixed(2)}</strong> (the order total) to {WALLET.CASHAPP}. Then upload your payment screenshot below.
                 </p>
               </div>
             )}
             {selectedCoin && selectedCoin !== 'CASHAPP' && WALLET[selectedCoin] && (
               <div className="mt-5 p-4 bg-gray-50 rounded-xl border border-gray-200">
-                <p className="text-sm font-medium text-gray-600 mb-2">Send <strong className="text-gray-900">${subtotal.toFixed(2)} USD in {selectedCoin}</strong> to this address:</p>
+                <p className="text-sm font-medium text-gray-600 mb-2">Send <strong className="text-gray-900">${total.toFixed(2)} USD in {selectedCoin}</strong> to this address:</p>
                 <div className="flex items-center gap-2">
                   <code className="flex-1 bg-white border border-gray-300 rounded-lg px-3 py-2.5 text-sm font-mono text-gray-800 break-all">{WALLET[selectedCoin]}</code>
                   <button type="button" onClick={copyAddress} className="shrink-0 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium">
@@ -326,7 +364,7 @@ export default function CheckoutClient() {
           {error && <div className="bg-red-50 border border-red-200 rounded-lg p-4"><p className="text-red-700 text-sm">{error}</p></div>}
 
           <button type="submit" disabled={submitting} className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-bold py-4 px-6 rounded-xl text-lg transition-colors">
-            {submitting ? 'Placing Order...' : `Place Order — $${subtotal.toFixed(2)}`}
+            {submitting ? 'Placing Order...' : `Place Order — $${total.toFixed(2)}`}
           </button>
           <p className="text-center text-xs text-gray-400">All products sold for research purposes only. Not for human consumption.</p>
         </form>
