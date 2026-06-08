@@ -59,9 +59,20 @@ export default async function TestingPage() {
                       )}
                     </p>
                   </div>
-                  <span className="flex-shrink-0 text-[11px] font-bold px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 whitespace-nowrap">
-                    COA Pending
-                  </span>
+                  {product.coa_url ? (
+                    <a
+                      href={product.coa_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-shrink-0 text-[11px] font-bold px-2.5 py-1 rounded-full bg-[#2d3ca5] text-white hover:bg-[#23306b] whitespace-nowrap transition-colors"
+                    >
+                      View COA
+                    </a>
+                  ) : (
+                    <span className="flex-shrink-0 text-[11px] font-bold px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 whitespace-nowrap">
+                      COA Pending
+                    </span>
+                  )}
                 </div>
               )
             })}

@@ -17,6 +17,7 @@ export interface Product {
   is_featured: boolean
   badge: string | null
   image_url: string | null
+  coa_url: string | null
   category_id: string | null
   created_at: string
 }

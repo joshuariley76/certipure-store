@@ -92,6 +92,25 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               </span>
             )}
             <p className="text-gray-600 text-sm leading-relaxed mb-6">{product.description}</p>
+            <div className="mb-6">
+              {product.coa_url ? (
+                <a
+                  href={product.coa_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 bg-[#2d3ca5] hover:bg-[#23306b] text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  View Certificate of Analysis
+                </a>
+              ) : (
+                <span className="inline-flex items-center gap-2 bg-gray-100 text-gray-400 text-sm font-semibold px-5 py-2.5 rounded-lg cursor-not-allowed">
+                  COA Pending
+                </span>
+              )}
+            </div>
             <PackSelector product={product} outOfStock={outOfStock} />
           </div>
         </div>
