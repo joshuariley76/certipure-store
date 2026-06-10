@@ -91,6 +91,58 @@ export default function OrdersAdmin({ orders }: { orders: Order[] }) {
 
   const pendingCount = orders.filter((o) => o.status === 'pending_verification').length
 
+  // "Ready to ship" = paid and verified but not yet shipped. Includes the legacy
+  // 'verified' status (same meaning, used before the payment_verified rename).
+  const readyToShip = orders.filter(
+    (o) => o.status === 'payment_verified' || o.status === 'verified',
+  )
+  const readyCount = readyToShip.length
+
+  // Build a Pirate Ship batch-import CSV from the ready-to-ship orders and
+  // trigger a download. Columns and order are Pirate Ship's required format.
+  function exportPirateshipCsv() {
+    const headers = [
+      'Name', 'Company', 'Address 1', 'Address 2', 'City', 'State', 'Zip',
+      'Country', 'Weight (oz)', 'Length', 'Width', 'Height', 'Service', 'Package Type',
+    ]
+    // Quote every cell and escape embedded quotes, so commas in addresses are safe.
+    const cell = (v: string | number | null | undefined) =>
+      `"${(v == null ? '' : String(v)).replace(/"/g, '""')}"`
+
+    const rows = readyToShip.map((o) => {
+      const a = o.shipping_address || {}
+      return [
+        o.customer_name || '', // Name (stored on the order, not in shipping_address)
+        '',                    // Company — blank
+        a.line1 || '',         // Address 1
+        a.line2 || '',         // Address 2
+        a.city || '',          // City
+        a.state || '',         // State
+        a.zip || '',           // Zip
+        'US',                  // Country
+        4,                     // Weight (oz) — default; Josh adjusts in Pirate Ship
+        6,                     // Length
+        4,                     // Width
+        2,                     // Height
+        '',                    // Service — blank
+        '',                    // Package Type — blank
+      ].map(cell).join(',')
+    })
+
+    const csv = [headers.map(cell).join(','), ...rows].join('\r\n')
+    const d = new Date()
+    const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `pirateship-orders-${today}.csv`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-5xl mx-auto px-4">
@@ -101,12 +153,26 @@ export default function OrdersAdmin({ orders }: { orders: Order[] }) {
               {orders.length} total · {pendingCount} awaiting verification
             </p>
           </div>
-          <button
-            onClick={logout}
-            className="text-sm text-gray-500 hover:text-gray-800 border border-gray-300 rounded-lg px-4 py-2 transition"
-          >
-            Sign out
-          </button>
+          <div className="flex items-center gap-4">
+            <div className="flex flex-col items-end">
+              <button
+                onClick={exportPirateshipCsv}
+                disabled={readyCount === 0}
+                className="text-sm font-semibold bg-[#2d3ca5] hover:bg-[#23306b] text-white rounded-lg px-4 py-2 transition disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                ⬇ Export to Pirateship CSV
+              </button>
+              <span className="text-xs text-gray-500 mt-1">
+                {readyCount} {readyCount === 1 ? 'order' : 'orders'} ready to ship
+              </span>
+            </div>
+            <button
+              onClick={logout}
+              className="text-sm text-gray-500 hover:text-gray-800 border border-gray-300 rounded-lg px-4 py-2 transition"
+            >
+              Sign out
+            </button>
+          </div>
         </div>
 
         {error && (
