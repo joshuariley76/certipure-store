@@ -2,7 +2,6 @@
 
 import { useRef } from 'react'
 import Link from 'next/link'
-import ProductLabel, { productLabelProps } from './ProductLabel'
 
 // One carousel card. Tapping it takes the customer to the product detail page,
 // where pack size (1/3/5 vials) and Add to Cart live.
@@ -16,9 +15,7 @@ function FeaturedCard({ product }: { product: any }) {
               {product.badge}
             </span>
           )}
-          <div className="w-full h-[228px]">
-            <ProductLabel {...productLabelProps(product)} />
-          </div>
+          <img src={product.image_url || '/certipure-vial-product.jpg'} alt={product.name} className="h-[220px] w-auto object-contain" />
         </div>
       </Link>
       <div className="p-4">
