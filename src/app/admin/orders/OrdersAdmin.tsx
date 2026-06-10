@@ -122,7 +122,7 @@ export default function OrdersAdmin({ orders }: { orders: Order[] }) {
         'US',                  // Country
         4,                     // Weight (oz) — default; Josh adjusts in Pirate Ship
         6,                     // Length
-        4,                     // Width
+        9,                     // Width
         2,                     // Height
         '',                    // Service — blank
         '',                    // Package Type — blank
