@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import ProductLabel, { productLabelProps } from './ProductLabel'
 
 // Catalog/listing card. Tapping anywhere takes the customer to the product
 // detail page, where pack size (1/3/5 vials) and Add to Cart live.
@@ -12,7 +13,9 @@ export default function ProductCard({ product }: { product: any }) {
               {product.badge}
             </span>
           )}
-          <img src="/certipure-vial-product.jpg" alt={product.name} className="h-[200px] w-auto object-contain" />
+          <div className="w-full h-[208px]">
+            <ProductLabel {...productLabelProps(product)} />
+          </div>
         </div>
       </Link>
       <div className="p-4">

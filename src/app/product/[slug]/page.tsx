@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import ProductCard from '@/components/ProductCard'
 import PackSelector from '@/components/PackSelector'
+import ProductLabel, { productLabelProps } from '@/components/ProductLabel'
 
 export const dynamic = 'force-dynamic'
 
@@ -75,7 +76,9 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         </div>
         <div className="grid md:grid-cols-2 gap-10 mb-16">
           <div className="bg-gray-50 rounded-2xl p-8 flex items-center justify-center">
-            <img src="/certipure-vial-product.jpg" alt={product.name} className="max-h-[400px] w-auto object-contain" />
+            <div className="w-full max-w-[360px] h-[420px]">
+              <ProductLabel {...productLabelProps(product)} />
+            </div>
           </div>
           <div>
             <p className="text-sm text-[#2d3ca5] font-semibold uppercase tracking-wider mb-2">{product.category?.name || 'Peptide'}</p>
