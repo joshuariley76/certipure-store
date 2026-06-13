@@ -21,7 +21,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     return { title: 'Product Not Found | CertiPure Research Peptides' }
   }
   const strength = `${product.size ?? ''}${product.unit ?? ''}`
-  const title = strength
+  const title = strength && !product.name.includes(strength)
     ? `${product.name} (${strength}) | CertiPure Research Peptides`
     : `${product.name} | CertiPure Research Peptides`
   const description = (product.short_description || '').slice(0, 160)
