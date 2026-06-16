@@ -13,8 +13,9 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error) {
-      // Verification succeeded and the user is now signed in.
-      return NextResponse.redirect(`${origin}/`)
+      // Verification succeeded and the user is now signed in — drop them
+      // straight onto the shop instead of the homepage gate.
+      return NextResponse.redirect(`${origin}/shop`)
     }
   }
 

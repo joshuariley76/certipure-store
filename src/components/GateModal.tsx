@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -15,8 +15,26 @@ export default function GateModal() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showConfirmationMessage, setShowConfirmationMessage] = useState(false)
+  // Until we've checked for an existing session we render nothing, so a
+  // logged-in visitor never sees the sign-in form flash before redirecting.
+  const [checkingSession, setCheckingSession] = useState(true)
 
   const supabase = createClient()
+
+  // If the visitor already has an active Supabase session (e.g. they just
+  // verified their email, or they're a returning logged-in customer), skip
+  // the gate entirely and send them straight to the shop.
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        window.location.href = '/shop'
+      } else {
+        setCheckingSession(false)
+      }
+    })
+    // The browser client is a stable singleton, so this runs once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -115,6 +133,12 @@ export default function GateModal() {
       setError('An unexpected error occurred. Please try again.')
       setLoading(false)
     }
+  }
+
+  // Still checking for an existing session, or one was found and we're
+  // redirecting — render nothing so the form never flashes.
+  if (checkingSession) {
+    return null
   }
 
   // "Check your email" confirmation screen
