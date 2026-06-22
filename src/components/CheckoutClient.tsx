@@ -117,6 +117,15 @@ export default function CheckoutClient() {
     address1:'', address2:'', city:'', state:'', zip:'',
   });
 
+  // Promo / first-order discount. `appliedPercent` and `appliedCode` are set
+  // only after the server confirms the code is valid for this customer; the
+  // amount is recomputed authoritatively in /api/create-order.
+  const [discountCode, setDiscountCode] = useState('');
+  const [appliedCode, setAppliedCode]   = useState('');
+  const [appliedPercent, setAppliedPercent] = useState(0);
+  const [discountMsg, setDiscountMsg]   = useState('');
+  const [applyingCode, setApplyingCode] = useState(false);
+
   useEffect(() => { loadCart(); }, []);
 
   async function loadCart() {
@@ -130,11 +139,14 @@ export default function CheckoutClient() {
   }
 
   const subtotal = cartItems.reduce((s, i) => s + i.price_at_add * i.quantity, 0);
+  // Discount preview. Uses the exact same formula as src/lib/discount.ts so the
+  // amount shown here matches what /api/create-order stores and charges.
+  const discount        = appliedPercent ? Math.round(subtotal * appliedPercent) / 100 : 0;
   // Shipping: free at $300+, otherwise a $12.99 flat rate. The server
   // (api/create-order) recomputes this same logic so the stored total is
   // authoritative — these values are just for display here.
   const shipping        = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : FLAT_SHIPPING;
-  const total           = subtotal + shipping;
+  const total           = subtotal - discount + shipping;
   const remainingForFree = Math.max(0, FREE_SHIPPING_THRESHOLD - subtotal);
   const freeShipProgress = Math.min(100, (subtotal / FREE_SHIPPING_THRESHOLD) * 100);
   const handle   = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
@@ -152,6 +164,36 @@ export default function CheckoutClient() {
     setCopied(true); setTimeout(() => setCopied(false), 2000);
   }
 
+  async function applyDiscount() {
+    const code = discountCode.trim();
+    if (!code) { setDiscountMsg('Enter a code first.'); return; }
+    setApplyingCode(true); setDiscountMsg('');
+    try {
+      const res = await fetch('/api/validate-discount', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      });
+      const json = await res.json();
+      if (json.valid) {
+        setAppliedCode(json.code);
+        setAppliedPercent(json.percent);
+        setDiscountMsg(`${json.percent}% off applied!`);
+      } else {
+        setAppliedCode(''); setAppliedPercent(0);
+        setDiscountMsg(json.reason || "That code isn't valid.");
+      }
+    } catch {
+      setDiscountMsg('Could not check that code. Please try again.');
+    } finally {
+      setApplyingCode(false);
+    }
+  }
+
+  function removeDiscount() {
+    setAppliedCode(''); setAppliedPercent(0); setDiscountCode(''); setDiscountMsg('');
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault(); setError('');
     if (!selectedCoin)  { setError('Please select a payment method.'); return; }
@@ -161,6 +203,7 @@ export default function CheckoutClient() {
     Object.entries(form).forEach(([k, v]) => data.append(k, v));
     data.append('cryptoCoin', selectedCoin);
     data.append('screenshot', screenshot);
+    if (appliedCode) data.append('discountCode', appliedCode);
     const res  = await fetch('/api/create-order', { method: 'POST', body: data });
     const json = await res.json();
     if (!res.ok) { setError(json.error || 'Something went wrong. Please try again.'); setSubmitting(false); return; }
@@ -201,6 +244,40 @@ export default function CheckoutClient() {
                 <span className="text-gray-600">Subtotal</span>
                 <span className="font-medium text-gray-900">${subtotal.toFixed(2)}</span>
               </div>
+
+              {/* Promo / first-order discount code */}
+              {appliedCode ? (
+                <div className="flex justify-between text-sm items-center">
+                  <span className="text-green-700 font-medium">Discount ({appliedCode})</span>
+                  <span className="font-semibold text-green-700">
+                    &minus;${discount.toFixed(2)}
+                    <button type="button" onClick={removeDiscount} className="ml-2 text-xs font-normal text-gray-400 underline hover:text-gray-600">remove</button>
+                  </span>
+                </div>
+              ) : (
+                <div className="flex gap-2 pt-1">
+                  <input
+                    type="text"
+                    value={discountCode}
+                    onChange={(e) => setDiscountCode(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); applyDiscount(); } }}
+                    placeholder="Promo code"
+                    className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm uppercase placeholder:normal-case focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={applyDiscount}
+                    disabled={applyingCode}
+                    className="shrink-0 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white text-sm font-medium px-4 py-2 rounded-lg"
+                  >
+                    {applyingCode ? 'Checking…' : 'Apply'}
+                  </button>
+                </div>
+              )}
+              {discountMsg && (
+                <p className={`text-xs ${appliedCode ? 'text-green-600' : 'text-amber-600'}`}>{discountMsg}</p>
+              )}
+
               <div className="flex justify-between text-sm items-center">
                 <span className="text-gray-600">Shipping</span>
                 {shipping === 0
