@@ -15,6 +15,9 @@ export default function GateModal() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showConfirmationMessage, setShowConfirmationMessage] = useState(false)
+  // True when the visitor has just clicked the email-verification link, so we
+  // can greet them and open the sign-in form instead of the sign-up form.
+  const [justVerified, setJustVerified] = useState(false)
   // Until we've checked for an existing session we render nothing, so a
   // logged-in visitor never sees the sign-in form flash before redirecting.
   const [checkingSession, setCheckingSession] = useState(true)
@@ -29,6 +32,13 @@ export default function GateModal() {
       if (session) {
         window.location.href = '/shop'
       } else {
+        // If they arrived from the email-verification link (the callback adds
+        // `?signin=1`), open the SIGN IN form, not the default sign-up form.
+        const params = new URLSearchParams(window.location.search)
+        if (params.get('signin') === '1') {
+          setMode('login')
+          setJustVerified(true)
+        }
         setCheckingSession(false)
       }
     })
@@ -69,6 +79,11 @@ export default function GateModal() {
         email: email.trim(),
         password,
         options: {
+          // Send the verification link to our callback route, which logs the
+          // user in and then forwards them on. Without this, Supabase falls
+          // back to the project Site URL (the homepage), which drops the user
+          // on the default sign-up gate instead of signing them in.
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
           data: {
             first_name: firstName.trim(),
             last_name: lastName.trim(),
@@ -201,6 +216,13 @@ export default function GateModal() {
             ? 'Create a free account to view all products, detailed research insights, and exclusive pricing.'
             : 'Sign in to access your account and browse our catalog.'}
         </p>
+
+        {/* Email-verified confirmation (shown once, after clicking the link) */}
+        {justVerified && mode === 'login' && !error && (
+          <div className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+            Your email is verified. Please sign in below to access the catalog.
+          </div>
+        )}
 
         {/* Error message */}
         {error && (

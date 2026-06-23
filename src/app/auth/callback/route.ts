@@ -41,7 +41,8 @@ export async function GET(request: Request) {
     }
   }
 
-  // No code, or the exchange failed — send them to the homepage, where the
-  // sign-in gate will prompt them to log in and try again.
-  return NextResponse.redirect(`${origin}/`)
+  // No code, or the exchange failed — send them to the homepage with the
+  // `?signin=1` flag, which tells the gate to open on the SIGN IN form (not
+  // the default sign-up form) so a just-verified user can log straight in.
+  return NextResponse.redirect(`${origin}/?signin=1`)
 }
