@@ -28,6 +28,7 @@ interface Order {
 }
 
 const STATUS_STYLES: Record<string, string> = {
+  pending_payment: 'bg-gray-100 text-gray-500', // card order created, awaiting PayRio payment
   pending_verification: 'bg-amber-100 text-amber-800',
   payment_verified: 'bg-blue-100 text-blue-800',
   verified: 'bg-blue-100 text-blue-800', // legacy orders saved before the rename
@@ -36,6 +37,7 @@ const STATUS_STYLES: Record<string, string> = {
 }
 
 const STATUS_LABEL: Record<string, string> = {
+  pending_payment: 'Awaiting card payment',
   pending_verification: 'Pending verification',
   payment_verified: 'Verified',
   verified: 'Verified', // legacy orders saved before the rename

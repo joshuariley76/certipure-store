@@ -22,6 +22,7 @@ const COINS = [
   { coin: 'SOL',  label: 'Solana',   network: 'Solana',  color: '#9945FF' },
 ];
 const CASHAPP_COLOR = '#00D632';
+const CARD_COLOR = '#2563eb'; // CertiPure blue — PayRio card option
 
 // Shipping rules — keep in sync with api/create-order/route.ts.
 const FREE_SHIPPING_THRESHOLD = 300;   // orders at/above this ship free
@@ -197,6 +198,32 @@ export default function CheckoutClient() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault(); setError('');
     if (!selectedCoin)  { setError('Please select a payment method.'); return; }
+
+    // Card payment (PayRio): no screenshot. We create the order server-side then
+    // redirect the customer to PayRio's hosted card page to actually pay. The
+    // order is confirmed later by PayRio's server-to-server callback.
+    if (selectedCoin === 'PAYRIOX') {
+      setSubmitting(true);
+      try {
+        const res = await fetch('/api/payriox/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...form, discountCode: appliedCode || '' }),
+        });
+        const json = await res.json();
+        if (!res.ok || !json.redirectUrl) {
+          setError(json.error || 'Could not start card payment. Please try again.');
+          setSubmitting(false);
+          return;
+        }
+        window.location.href = json.redirectUrl; // off to PayRio's hosted checkout
+      } catch {
+        setError('Could not start card payment. Please try again.');
+        setSubmitting(false);
+      }
+      return;
+    }
+
     if (!screenshot)    { setError('Please upload a screenshot of your payment.'); return; }
     setSubmitting(true);
     const data = new FormData();
@@ -354,8 +381,16 @@ export default function CheckoutClient() {
           {/* Payment */}
           <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-1">② Select Payment Method</h2>
-            <p className="text-sm text-gray-500 mb-4">We accept cryptocurrency or Cash App.</p>
+            <p className="text-sm text-gray-500 mb-4">We accept credit/debit card, cryptocurrency, or Cash App.</p>
             <div className="flex flex-wrap gap-3">
+              {/* Credit / debit card via PayRio (redirect to hosted checkout) */}
+              <button type="button" onClick={() => setSelectedCoin('PAYRIOX')}
+                style={selectedCoin === 'PAYRIOX' ? { borderColor: CARD_COLOR, boxShadow: `0 0 0 3px ${CARD_COLOR}26, 0 6px 16px ${CARD_COLOR}40` } : undefined}
+                className={`w-[104px] flex flex-col items-center justify-center gap-2 px-3 py-4 rounded-xl border-2 bg-white transition-all ${selectedCoin === 'PAYRIOX' ? 'scale-[1.03]' : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'}`}>
+                <div className="w-11 h-11 rounded-lg flex items-center justify-center text-white text-2xl drop-shadow-sm" style={{ backgroundColor: CARD_COLOR }}>💳</div>
+                <div className="text-sm font-bold leading-tight" style={{ color: CARD_COLOR }}>Card</div>
+                <div className="text-[11px] font-medium text-gray-400">Visa · MC</div>
+              </button>
               {COINS.map(opt => {
                 const selected = selectedCoin === opt.coin;
                 return (
@@ -376,6 +411,12 @@ export default function CheckoutClient() {
                 <div className="text-[11px] font-medium text-gray-400">$Cashtag</div>
               </button>
             </div>
+            {selectedCoin === 'PAYRIOX' && (
+              <div className="mt-5 p-4 bg-blue-50 rounded-xl border border-blue-200">
+                <p className="text-sm font-medium text-blue-900">You&rsquo;ll be taken to our secure card payment page to pay <strong>${total.toFixed(2)}</strong>.</p>
+                <p className="mt-2 text-xs text-blue-700">No screenshot needed — your order is confirmed automatically once the payment goes through, and we&rsquo;ll email you a receipt.</p>
+              </div>
+            )}
             {selectedCoin === 'CASHAPP' && WALLET.CASHAPP && (
               <div className="mt-5 p-4 bg-gray-50 rounded-xl border border-gray-200">
                 <p className="text-sm font-medium text-gray-600 mb-2">Send <strong className="text-gray-900">exactly ${total.toFixed(2)}</strong> via Cash App to this $Cashtag:</p>
@@ -404,19 +445,20 @@ export default function CheckoutClient() {
                 </p>
               </div>
             )}
-            {selectedCoin && !WALLET[selectedCoin] && (
+            {selectedCoin && selectedCoin !== 'PAYRIOX' && !WALLET[selectedCoin] && (
               <p className="mt-4 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">
                 No receiving address is configured for {selectedCoin} yet. (Set NEXT_PUBLIC_WALLET_{selectedCoin} in .env.local.)
               </p>
             )}
-            {selectedCoin && !COINS.some(c => c.coin === selectedCoin) && (
+            {selectedCoin && selectedCoin !== 'PAYRIOX' && !COINS.some(c => c.coin === selectedCoin) && (
               <p className="mt-4 text-sm font-bold text-white bg-red-600 border border-red-700 rounded-lg p-4">
                 ⚠️ WARNING: Do NOT include the word &lsquo;peptide&rsquo; or any product names in your payment note. Orders with flagged payment notes will be immediately cancelled.
               </p>
             )}
           </section>
 
-          {/* Screenshot Upload */}
+          {/* Screenshot Upload — not needed for card payments (PayRio confirms automatically) */}
+          {selectedCoin !== 'PAYRIOX' && (
           <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-1">③ Upload Payment Screenshot</h2>
             <p className="text-sm text-gray-500 mb-4">Upload a screenshot from your wallet showing the completed transaction.</p>
@@ -437,11 +479,14 @@ export default function CheckoutClient() {
               )}
             </div>
           </section>
+          )}
 
           {error && <div className="bg-red-50 border border-red-200 rounded-lg p-4"><p className="text-red-700 text-sm">{error}</p></div>}
 
           <button type="submit" disabled={submitting} className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-bold py-4 px-6 rounded-xl text-lg transition-colors">
-            {submitting ? 'Placing Order...' : `Place Order — $${total.toFixed(2)}`}
+            {submitting
+              ? (selectedCoin === 'PAYRIOX' ? 'Redirecting to payment…' : 'Placing Order...')
+              : (selectedCoin === 'PAYRIOX' ? `Continue to Card Payment — $${total.toFixed(2)}` : `Place Order — $${total.toFixed(2)}`)}
           </button>
           <p className="text-center text-xs text-gray-400">All products sold for research purposes only. Not for human consumption.</p>
         </form>
