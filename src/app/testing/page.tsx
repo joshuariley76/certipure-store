@@ -1,18 +1,45 @@
 import { supabase } from '@/lib/supabase'
+import CoaHistory, { type CoaRow } from '@/components/CoaHistory'
 
 export const dynamic = 'force-dynamic'
 
-async function getProducts() {
-  const { data } = await supabase
-    .from('products')
-    .select('*')
-    .eq('is_active', true)
-    .order('name')
-  return data || []
+// Build the COA history: every batch (old + new) as its own row, newest first.
+// coas + products are fetched separately and joined in JS so this does not
+// depend on a PostgREST foreign-key relationship being present.
+async function getCoaHistory(): Promise<CoaRow[]> {
+  const [{ data: coas }, { data: products }] = await Promise.all([
+    supabase.from('coas').select('*').order('test_date', { ascending: false }),
+    supabase
+      .from('products')
+      .select('id, name, slug, size, unit, is_active')
+      .eq('is_active', true),
+  ])
+
+  const pmap = new Map((products || []).map((p: any) => [p.id, p]))
+  const rows: CoaRow[] = []
+  for (const c of coas || []) {
+    const p = pmap.get(c.product_id)
+    if (!p) continue
+    const size =
+      c.size ||
+      (p.size != null ? `${p.size}${p.unit || ''}` : '')
+    rows.push({
+      id: c.id,
+      product: p.name,
+      slug: p.slug,
+      size,
+      batch: c.batch_number || '',
+      date: c.test_date || '',
+      net: c.net_content ?? null,
+      purity: c.purity ?? null,
+      pdf: c.pdf_url ?? null,
+    })
+  }
+  return rows
 }
 
 export default async function TestingPage() {
-  const products = await getProducts()
+  const rows = await getCoaHistory()
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -23,61 +50,13 @@ export default async function TestingPage() {
           All CertiPure products undergo independent third-party testing for
           identity, purity, and concentration by accredited analytical
           laboratories. Each batch is evaluated before release so you can
-          research with confidence.
+          research with confidence. Every tested batch — current and past — is
+          listed below.
         </p>
       </div>
 
       <div className="max-w-6xl mx-auto px-4 py-12">
-        {/* Product COA grid */}
-        {products.length === 0 ? (
-          <p className="text-center text-sm text-gray-400">
-            Our catalog is being updated. Please check back soon.
-          </p>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {products.map((product: any) => {
-              const strength =
-                product.size != null
-                  ? `${product.size}${product.unit || ''}`
-                  : null
-              return (
-                <div
-                  key={product.id}
-                  className="bg-white border border-gray-200 rounded-2xl p-5 flex items-start justify-between gap-4 hover:shadow-md transition-shadow"
-                >
-                  <div className="min-w-0">
-                    <h3 className="font-bold text-sm text-gray-900">
-                      {product.name}
-                    </h3>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {strength && <span>{strength}</span>}
-                      {strength && product.sku && (
-                        <span className="text-gray-300"> · </span>
-                      )}
-                      {product.sku && (
-                        <span className="font-mono">SKU {product.sku}</span>
-                      )}
-                    </p>
-                  </div>
-                  {product.coa_url ? (
-                    <a
-                      href={product.coa_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-shrink-0 text-[11px] font-bold px-2.5 py-1 rounded-full bg-[#2d3ca5] text-white hover:bg-[#23306b] whitespace-nowrap transition-colors"
-                    >
-                      View COA
-                    </a>
-                  ) : (
-                    <span className="flex-shrink-0 text-[11px] font-bold px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 whitespace-nowrap">
-                      COA Pending
-                    </span>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        )}
+        <CoaHistory rows={rows} />
 
         {/* COA-on-request section */}
         <div className="mt-12 bg-white border border-gray-200 rounded-2xl p-8 text-center">

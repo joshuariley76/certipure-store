@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import ProductCard from '@/components/ProductCard'
 import PackSelector from '@/components/PackSelector'
+import CoaThumbnail from '@/components/CoaThumbnail'
 
 export const dynamic = 'force-dynamic'
 
@@ -55,6 +56,9 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   if (!product) notFound()
 
   const coas = await getCOAs(product.id)
+  // Latest COA PDF — prefer the coas history table, fall back to the legacy
+  // products.coa_url column.
+  const coaUrl: string | null = coas[0]?.pdf_url || product.coa_url || null
 
   // Stock state. A null/undefined stock_quantity is treated as "in stock" (the
   // column simply isn't tracked for that product). 0 = out of stock; 1–10 = low.
@@ -74,8 +78,11 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           <span className="text-gray-700">{product.name}</span>
         </div>
         <div className="grid md:grid-cols-2 gap-10 mb-16">
-          <div className="bg-gray-50 rounded-2xl p-8 flex items-center justify-center">
-            <img src={product.image_url || '/certipure-vial-product.jpg'} alt={product.name} className="max-h-[400px] w-auto object-contain" />
+          <div className="flex flex-col gap-4">
+            <div className="bg-gray-50 rounded-2xl p-8 flex items-center justify-center">
+              <img src={product.image_url || '/certipure-vial-product.jpg'} alt={product.name} className="max-h-[400px] w-auto object-contain" />
+            </div>
+            {coaUrl && <CoaThumbnail pdfUrl={coaUrl} />}
           </div>
           <div>
             <p className="text-sm text-[#2d3ca5] font-semibold uppercase tracking-wider mb-2">{product.category?.name || 'Peptide'}</p>
@@ -93,9 +100,9 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             )}
             <p className="text-gray-600 text-sm leading-relaxed mb-6">{product.description}</p>
             <div className="mb-6">
-              {product.coa_url ? (
+              {coaUrl ? (
                 <a
-                  href={product.coa_url}
+                  href={coaUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 bg-[#2d3ca5] hover:bg-[#23306b] text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors"
@@ -122,6 +129,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                 <thead>
                   <tr className="bg-gray-100 text-left text-xs text-gray-500 uppercase">
                     <th className="px-5 py-3">Batch</th>
+                    <th className="px-5 py-3">Net Content</th>
                     <th className="px-5 py-3">Purity</th>
                     <th className="px-5 py-3">Date</th>
                   </tr>
@@ -130,7 +138,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                   {coas.map((coa: any) => (
                     <tr key={coa.id} className="border-t border-gray-200">
                       <td className="px-5 py-3.5 font-mono text-xs">{coa.batch_number}</td>
-                      <td className="px-5 py-3.5 text-green-600 font-bold">{coa.purity_percent}%</td>
+                      <td className="px-5 py-3.5 text-gray-600">{coa.net_content || '—'}</td>
+                      <td className="px-5 py-3.5 text-green-600 font-bold">{coa.purity || '—'}</td>
                       <td className="px-5 py-3.5 text-gray-500">{new Date(coa.test_date).toLocaleDateString()}</td>
                     </tr>
                   ))}
