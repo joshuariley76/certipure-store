@@ -35,6 +35,14 @@ async function getCoaHistory(): Promise<CoaRow[]> {
       pdf: c.pdf_url ?? null,
     })
   }
+  // Group by product (then size) so a product with several batches is listed
+  // together — each batch on its own row, newest batch first within the group.
+  rows.sort(
+    (a, b) =>
+      a.product.localeCompare(b.product) ||
+      (a.size || '').localeCompare(b.size || '', undefined, { numeric: true }) ||
+      (a.date < b.date ? 1 : a.date > b.date ? -1 : 0),
+  )
   return rows
 }
 

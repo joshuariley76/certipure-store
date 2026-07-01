@@ -8,6 +8,18 @@ import CoaThumbnail from '@/components/CoaThumbnail'
 
 export const dynamic = 'force-dynamic'
 
+// Short, deterministic caption for a COA thumbnail, e.g. "Batch CPRT07-1 · Jun 29, 2026".
+const COA_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+function coaCaption(coa: any): string {
+  const parts: string[] = []
+  if (coa.batch_number) parts.push(`Batch ${coa.batch_number}`)
+  if (coa.test_date) {
+    const [y, m, d] = String(coa.test_date).split('T')[0].split('-').map(Number)
+    if (y && m && d) parts.push(`${COA_MONTHS[m - 1]} ${d}, ${y}`)
+  }
+  return parts.join(' · ')
+}
+
 async function getProduct(slug: string) {
   const { data } = await supabase.from('products').select('*, category:categories(id, name, slug)').eq('slug', slug).eq('is_active', true).single()
   return data
@@ -60,6 +72,15 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   // products.coa_url column.
   const coaUrl: string | null = coas[0]?.pdf_url || product.coa_url || null
 
+  // Every COA gets its own thumbnail (newest first). Fall back to the legacy
+  // single coa_url only when there are no coas rows at all.
+  const coaThumbs: { id: string; url: string; caption: string }[] = coas
+    .filter((c: any) => c.pdf_url)
+    .map((c: any) => ({ id: c.id, url: c.pdf_url as string, caption: coaCaption(c) }))
+  if (coaThumbs.length === 0 && product.coa_url) {
+    coaThumbs.push({ id: 'legacy', url: product.coa_url, caption: '' })
+  }
+
   // Stock state. A null/undefined stock_quantity is treated as "in stock" (the
   // column simply isn't tracked for that product). 0 = out of stock; 1–10 = low.
   const stock: number | null =
@@ -82,7 +103,17 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             <div className="bg-gray-50 rounded-2xl p-8 flex items-center justify-center">
               <img src={product.image_url || '/certipure-vial-product.jpg'} alt={product.name} className="max-h-[400px] w-auto object-contain" />
             </div>
-            {coaUrl && <CoaThumbnail pdfUrl={coaUrl} />}
+            {coaThumbs.length > 0 && (
+              <div className={coaThumbs.length > 1 ? 'grid grid-cols-2 gap-3' : ''}>
+                {coaThumbs.map((t) => (
+                  <CoaThumbnail
+                    key={t.id}
+                    pdfUrl={t.url}
+                    caption={coaThumbs.length > 1 ? t.caption : undefined}
+                  />
+                ))}
+              </div>
+            )}
           </div>
           <div>
             <p className="text-sm text-[#2d3ca5] font-semibold uppercase tracking-wider mb-2">{product.category?.name || 'Peptide'}</p>

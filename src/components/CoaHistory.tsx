@@ -139,7 +139,7 @@ export default function CoaHistory({ rows }: { rows: CoaRow[] }) {
       </div>
 
       <p className="mt-3 text-xs text-gray-400">
-        Showing {filtered.length} of {rows.length} tested batches. Newest results first.
+        Showing {filtered.length} of {rows.length} tested batches — grouped by product, newest batch first. Products with more than one batch are listed once per batch.
       </p>
     </div>
   )
