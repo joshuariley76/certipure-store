@@ -16,11 +16,15 @@ function FeaturedCard({ product }: { product: any }) {
     <div className="min-w-[250px] max-w-[250px] snap-start bg-white border border-gray-200 rounded-2xl overflow-hidden flex-shrink-0 hover:-translate-y-1 hover:shadow-xl transition-all">
       <Link href={`/product/${product.slug}`}>
         <div className="relative bg-gray-50 h-[220px] overflow-hidden">
-          {product.badge && product.badge !== 'Best Seller' && product.badge !== 'Popular' && (
+          {product.stock_quantity === 0 ? (
+            <span className="absolute top-3 left-3 text-[10px] font-bold px-2.5 py-1 rounded-full z-10 bg-amber-100 text-amber-800">
+              Restock Soon
+            </span>
+          ) : product.badge && product.badge !== 'Best Seller' && product.badge !== 'Popular' ? (
             <span className="absolute top-3 left-3 text-[10px] font-bold px-2.5 py-1 rounded-full z-10 bg-blue-50 text-[#2d3ca5]">
               {product.badge}
             </span>
-          )}
+          ) : null}
           <img src={product.image_url || '/certipure-vial-product.jpg'} alt={product.name} className="w-full h-full object-cover" />
         </div>
       </Link>
