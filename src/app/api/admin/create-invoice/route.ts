@@ -85,8 +85,13 @@ export async function POST(request: Request) {
     .insert({
       user_id: null,
       order_number: orderNumber,
-      status: 'invoice',
-      customer_email: customerEmail || null,
+      // 'pending_payment' = created but unpaid (an allowed status). Real customer
+      // details + shipping are filled in when they pay via the link; these are
+      // placeholders to satisfy NOT NULL columns until then.
+      status: 'pending_payment',
+      customer_name: 'Invoice — awaiting payment',
+      customer_email: customerEmail || 'pending@certipure.net',
+      shipping_address: {},
       payment_method: null,
       subtotal,
       shipping_cost: shipping,
