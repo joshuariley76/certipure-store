@@ -18,7 +18,7 @@ async function getAllProducts() {
 }
 
 async function getCOAs() {
-  const { data, error } = await supabase.from('coas').select('*, product:products(name, slug)').order('test_date', { ascending: false }).limit(5)
+  const { data, error } = await supabase.from('coas').select('*, product:products(name, slug)').order('test_date', { ascending: false })
   if (error) console.error('COAs error:', error.message)
   return data || []
 }
@@ -90,27 +90,32 @@ export default async function HomePage() {
           <div className="max-w-7xl mx-auto">
             <h2 className="text-3xl lg:text-4xl font-bold text-center mb-10" style={{ fontFamily: "'Playfair Display', serif" }}>Third-Party Lab Tested</h2>
             <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-xs text-white/40 uppercase tracking-wider">
-                    <th className="px-6 py-4">Product</th>
-                    <th className="px-6 py-4">Batch</th>
-                    <th className="px-6 py-4">Purity</th>
-                    <th className="px-6 py-4">Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {coas.map((coa: any) => (
-                    <tr key={coa.id} className="border-t border-white/5">
-                      <td className="px-6 py-4 font-medium">{coa.product?.name}</td>
-                      <td className="px-6 py-4 text-white/50 font-mono text-xs">{coa.batch_number}</td>
-                      <td className="px-6 py-4 text-green-400 font-bold">{coa.purity_percent}%</td>
-                      <td className="px-6 py-4 text-white/50">{new Date(coa.test_date).toLocaleDateString()}</td>
+              <div className="max-h-[28rem] overflow-y-auto">
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 z-10 bg-[#161d54]">
+                    <tr className="text-left text-xs text-white/40 uppercase tracking-wider">
+                      <th className="px-6 py-4">Product</th>
+                      <th className="px-6 py-4">Batch</th>
+                      <th className="px-6 py-4">Purity</th>
+                      <th className="px-6 py-4">Date</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {coas.map((coa: any) => (
+                      <tr key={coa.id} className="border-t border-white/5">
+                        <td className="px-6 py-4 font-medium">{coa.product?.name}</td>
+                        <td className="px-6 py-4 text-white/50 font-mono text-xs">{coa.batch_number}</td>
+                        <td className="px-6 py-4 text-green-400 font-bold">{coa.purity || '—'}</td>
+                        <td className="px-6 py-4 text-white/50">{new Date(coa.test_date).toLocaleDateString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
+            <p className="mt-4 text-center text-xs text-white/40">
+              Showing all {coas.length} tested batches — scroll the table to view more.
+            </p>
           </div>
         </section>
       )}
