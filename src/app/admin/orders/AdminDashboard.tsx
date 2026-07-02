@@ -3,15 +3,21 @@
 import { useState } from 'react'
 import OrdersAdmin from './OrdersAdmin'
 import InventoryAdmin from './InventoryAdmin'
+import InvoiceAdmin from './InvoiceAdmin'
 
 interface Product {
   id: string
   name: string
   sku: string | null
   stock_quantity: number | null
+  is_active?: boolean
+  price?: number | null
+  price_single?: number | null
+  price_3pack?: number | null
+  price_5pack?: number | null
 }
 
-type Tab = 'orders' | 'inventory'
+type Tab = 'orders' | 'inventory' | 'invoices'
 
 export default function AdminDashboard({
   orders,
@@ -40,13 +46,18 @@ export default function AdminDashboard({
           <button onClick={() => setTab('inventory')} className={tabClass(tab === 'inventory')}>
             Inventory
           </button>
+          <button onClick={() => setTab('invoices')} className={tabClass(tab === 'invoices')}>
+            Invoices
+          </button>
         </div>
       </div>
 
       {tab === 'orders' ? (
         <OrdersAdmin orders={orders} />
-      ) : (
+      ) : tab === 'inventory' ? (
         <InventoryAdmin products={products} />
+      ) : (
+        <InvoiceAdmin products={products} />
       )}
     </div>
   )

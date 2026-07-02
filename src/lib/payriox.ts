@@ -57,6 +57,25 @@ export function verifyCallbackToken(orderNumber: string, token: string): boolean
   return timingSafeEqual(a, b)
 }
 
+// --- Invoice link token: unguessable token embedded in shareable pay links -----
+
+// Distinct from callbackToken: this one IS shown to the customer (it's in the
+// invoice URL you send them), so it uses a DIFFERENT message ('invoice:' prefix)
+// than the PayRio callback token. Knowing the invoice token therefore never
+// reveals the callback token, even though both use PAYRIOX_CALLBACK_SECRET.
+export function invoiceToken(orderNumber: string): string {
+  return createHmac('sha256', callbackSecret()).update('invoice:' + orderNumber).digest('hex')
+}
+
+export function verifyInvoiceToken(orderNumber: string, token: string): boolean {
+  if (!callbackSecret() || !token) return false
+  const expected = invoiceToken(orderNumber)
+  const a = Buffer.from(expected)
+  const b = Buffer.from(token)
+  if (a.length !== b.length) return false
+  return timingSafeEqual(a, b)
+}
+
 // --- Step 1: create a one-time encrypted receiving wallet ----------------------
 
 export interface PayrioxWallet {

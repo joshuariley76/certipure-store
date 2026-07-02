@@ -74,7 +74,7 @@ export default async function AdminOrdersPage() {
   // Products for the Inventory tab.
   const { data: products } = await admin
     .from('products')
-    .select('id, name, sku, stock_quantity')
+    .select('id, name, sku, stock_quantity, is_active, price, price_single, price_3pack, price_5pack')
     .order('name')
 
   return <AdminDashboard orders={withScreenshots} products={products || []} />

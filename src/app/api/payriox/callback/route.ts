@@ -112,8 +112,11 @@ export async function GET(request: Request) {
     }
   }
 
-  // 8. Clear the customer's cart now that the order is paid.
-  await admin.from('cart_items').delete().eq('user_id', order.user_id)
+  // 8. Clear the customer's cart now that the order is paid. Invoice orders have
+  //    no account (user_id null), so there's nothing to clear for those.
+  if (order.user_id) {
+    await admin.from('cart_items').delete().eq('user_id', order.user_id)
+  }
 
   // 9. Tracking (no-op unless PAYRIOX_IPT_KEY is set).
   sendIptEvent({
