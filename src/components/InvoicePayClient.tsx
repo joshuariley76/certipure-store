@@ -1,23 +1,7 @@
 'use client'
 import { useRef, useState } from 'react'
+import PaymentSelector from '@/components/PaymentSelector'
 
-const WALLET: Record<string, string> = {
-  BTC: process.env.NEXT_PUBLIC_WALLET_BTC || '',
-  ETH: process.env.NEXT_PUBLIC_WALLET_ETH || '',
-  USDT: process.env.NEXT_PUBLIC_WALLET_USDT || '',
-  USDC: process.env.NEXT_PUBLIC_WALLET_USDC || '',
-  SOL: process.env.NEXT_PUBLIC_WALLET_SOL || '',
-  CASHAPP: process.env.NEXT_PUBLIC_WALLET_CASHAPP || '',
-}
-const COINS = [
-  { coin: 'BTC', label: 'Bitcoin', network: 'Bitcoin', color: '#F7931A' },
-  { coin: 'ETH', label: 'Ethereum', network: 'ERC-20', color: '#627EEA' },
-  { coin: 'USDT', label: 'Tether', network: 'ERC-20', color: '#26A17B' },
-  { coin: 'USDC', label: 'USD Coin', network: 'ERC-20', color: '#2775CA' },
-  { coin: 'SOL', label: 'Solana', network: 'Solana', color: '#9945FF' },
-]
-const CASHAPP_COLOR = '#00D632'
-const CARD_COLOR = '#2563eb'
 const US_STATES = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY']
 
 type Item = { name: string; packSize: number; quantity: number; lineTotal: number }
@@ -30,7 +14,6 @@ export default function InvoicePayClient({
 }) {
   const fileRef = useRef<HTMLInputElement>(null)
   const [selectedCoin, setSelectedCoin] = useState('')
-  const [copied, setCopied] = useState(false)
   const [screenshot, setScreenshot] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -47,10 +30,6 @@ export default function InvoicePayClient({
     const file = e.target.files?.[0]; if (!file) return
     setScreenshot(file)
     const r = new FileReader(); r.onload = ev => setPreview(ev.target?.result as string); r.readAsDataURL(file)
-  }
-  async function copyAddress() {
-    await navigator.clipboard.writeText(WALLET[selectedCoin] || '')
-    setCopied(true); setTimeout(() => setCopied(false), 2000)
   }
   function shippingValid() {
     const f = form
@@ -174,62 +153,8 @@ export default function InvoicePayClient({
 
           {/* Payment */}
           <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-1">② Select Payment Method</h2>
-            <p className="text-sm text-gray-500 mb-4">Card, cryptocurrency, or Cash App.</p>
-            <div className="flex flex-wrap gap-3">
-              <button type="button" onClick={() => setSelectedCoin('PAYRIOX')}
-                style={selectedCoin === 'PAYRIOX' ? { borderColor: CARD_COLOR, boxShadow: `0 0 0 3px ${CARD_COLOR}26` } : undefined}
-                className={`w-[104px] flex flex-col items-center justify-center gap-2 px-3 py-4 rounded-xl border-2 bg-white transition-all ${selectedCoin === 'PAYRIOX' ? 'scale-[1.03]' : 'border-gray-200 hover:border-gray-300'}`}>
-                <div className="w-11 h-11 rounded-lg flex items-center justify-center text-white text-2xl" style={{ backgroundColor: CARD_COLOR }}>💳</div>
-                <div className="text-sm font-bold" style={{ color: CARD_COLOR }}>Card</div>
-                <div className="text-[11px] text-gray-400">Visa · MC</div>
-              </button>
-              {COINS.map(opt => {
-                const sel = selectedCoin === opt.coin
-                return (
-                  <button key={opt.coin} type="button" onClick={() => setSelectedCoin(opt.coin)}
-                    style={sel ? { borderColor: opt.color, boxShadow: `0 0 0 3px ${opt.color}26` } : undefined}
-                    className={`w-[104px] flex flex-col items-center justify-center gap-2 px-3 py-4 rounded-xl border-2 bg-white transition-all ${sel ? 'scale-[1.03]' : 'border-gray-200 hover:border-gray-300'}`}>
-                    <div className="w-11 h-11 rounded-full flex items-center justify-center text-white text-lg font-bold" style={{ backgroundColor: opt.color }}>{opt.coin[0]}</div>
-                    <div className="text-sm font-bold" style={{ color: opt.color }}>{opt.label}</div>
-                    <div className="text-[11px] text-gray-400">{opt.coin} · {opt.network}</div>
-                  </button>
-                )
-              })}
-              <button type="button" onClick={() => setSelectedCoin('CASHAPP')}
-                style={selectedCoin === 'CASHAPP' ? { borderColor: CASHAPP_COLOR, boxShadow: `0 0 0 3px ${CASHAPP_COLOR}26` } : undefined}
-                className={`w-[104px] flex flex-col items-center justify-center gap-2 px-3 py-4 rounded-xl border-2 bg-white transition-all ${selectedCoin === 'CASHAPP' ? 'scale-[1.03]' : 'border-gray-200 hover:border-gray-300'}`}>
-                <div className="w-11 h-11 rounded-full flex items-center justify-center text-white text-2xl font-extrabold" style={{ backgroundColor: CASHAPP_COLOR }}>$</div>
-                <div className="text-sm font-bold" style={{ color: CASHAPP_COLOR }}>Cash App</div>
-                <div className="text-[11px] text-gray-400">$Cashtag</div>
-              </button>
-            </div>
-
-            {selectedCoin === 'PAYRIOX' && (
-              <div className="mt-5 p-4 bg-blue-50 rounded-xl border border-blue-200">
-                <p className="text-sm font-medium text-blue-900">You&rsquo;ll be taken to our secure card page to pay <strong>${total.toFixed(2)}</strong>. Your order confirms automatically once payment goes through.</p>
-              </div>
-            )}
-            {selectedCoin === 'CASHAPP' && WALLET.CASHAPP && (
-              <div className="mt-5 p-4 bg-gray-50 rounded-xl border border-gray-200">
-                <p className="text-sm font-medium text-gray-600 mb-2">Send <strong className="text-gray-900">exactly ${total.toFixed(2)}</strong> via Cash App to:</p>
-                <div className="flex items-center gap-2">
-                  <code className="flex-1 bg-white border border-gray-300 rounded-lg px-3 py-2.5 text-sm font-mono break-all">{WALLET.CASHAPP}</code>
-                  <button type="button" onClick={copyAddress} className="shrink-0 bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium">{copied ? '✓' : 'Copy'}</button>
-                </div>
-                <p className="mt-3 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">⚠️ Send exactly ${total.toFixed(2)}, then upload your screenshot below.</p>
-              </div>
-            )}
-            {selectedCoin && selectedCoin !== 'CASHAPP' && selectedCoin !== 'PAYRIOX' && WALLET[selectedCoin] && (
-              <div className="mt-5 p-4 bg-gray-50 rounded-xl border border-gray-200">
-                <p className="text-sm font-medium text-gray-600 mb-2">Send <strong className="text-gray-900">${total.toFixed(2)} USD in {selectedCoin}</strong> to:</p>
-                <div className="flex items-center gap-2">
-                  <code className="flex-1 bg-white border border-gray-300 rounded-lg px-3 py-2.5 text-sm font-mono break-all">{WALLET[selectedCoin]}</code>
-                  <button type="button" onClick={copyAddress} className="shrink-0 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium">{copied ? '✓' : 'Copy'}</button>
-                </div>
-                <p className="mt-3 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">⚠️ Send the exact USD equivalent at current rate, then upload your screenshot below.</p>
-              </div>
-            )}
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">② Select Payment Method</h2>
+            <PaymentSelector total={total} selectedCoin={selectedCoin} onSelectCoin={setSelectedCoin} />
           </section>
 
           {/* Screenshot — not for card */}
