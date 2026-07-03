@@ -8,6 +8,7 @@ import AgeGateModal from "@/components/AgeGateModal"
 import CartDrawer from "@/components/CartDrawer"
 import { CartProvider } from "@/lib/cart-context"
 import { createClient } from "@/lib/supabase/server"
+import { headers } from "next/headers"
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://certipure.net"
 
@@ -40,6 +41,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
+  // Some pages must be reachable without an account — e.g. a customer paying an
+  // invoice link they were emailed. Those bypass the signup gate.
+  const pathname = (await headers()).get("x-pathname") || ""
+  const bypassGate = pathname.startsWith("/invoice")
+  const showGate = !user && !bypassGate
+
   return (
     <html lang="en">
       <head>
@@ -48,7 +55,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className="bg-white text-gray-900 antialiased">
         <AgeGateModal />
         <CartProvider>
-          {user ? (
+          {!showGate ? (
             <>
               <Navbar />
               {children}
