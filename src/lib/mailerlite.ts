@@ -15,6 +15,10 @@ const ML_BASE = 'https://connect.mailerlite.com/api'
 export const MAILERLITE_GROUPS = {
   customers: process.env.MAILERLITE_GROUP_CUSTOMERS || '',
   newsletter: process.env.MAILERLITE_GROUP_NEWSLETTER || '',
+  // Customers who pay via an invoice link. The id is baked in as a default so
+  // it works in production without adding a new env var (a group id is not a
+  // secret); an env var still overrides it if set.
+  invoices: process.env.MAILERLITE_GROUP_INVOICES || '191981443427075921',
 }
 
 export type MailerLiteResult = { ok: boolean; status: number; error?: string }

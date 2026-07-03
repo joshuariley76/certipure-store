@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resend } from '@/lib/resend'
 import { verifyInvoiceToken } from '@/lib/payriox'
+import { addSubscriberToGroup, MAILERLITE_GROUPS } from '@/lib/mailerlite'
 
 export const dynamic = 'force-dynamic'
 
@@ -82,6 +83,13 @@ export async function POST(request: Request) {
     })
     .eq('id', order.id)
   if (updErr) return NextResponse.json({ error: 'Could not submit. Please try again.' }, { status: 500 })
+
+  // Best-effort: capture this invoice customer into the MailerLite invoice group.
+  await addSubscriberToGroup({
+    email,
+    groupId: MAILERLITE_GROUPS.invoices,
+    fields: { name: firstName, last_name: lastName },
+  }).catch(() => {})
 
   const { data: items } = await admin
     .from('order_items')

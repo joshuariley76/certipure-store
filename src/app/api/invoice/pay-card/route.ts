@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { addSubscriberToGroup, MAILERLITE_GROUPS } from '@/lib/mailerlite'
 import {
   payrioxConfigured,
   payrioxPayoutWallet,
@@ -79,6 +80,13 @@ export async function POST(request: Request) {
   if (updErr) {
     return NextResponse.json({ error: 'Could not start the payment. Please try again.' }, { status: 500 })
   }
+
+  // Best-effort: capture this invoice customer into the MailerLite invoice group.
+  await addSubscriberToGroup({
+    email,
+    groupId: MAILERLITE_GROUPS.invoices,
+    fields: { name: firstName, last_name: lastName },
+  }).catch(() => {})
 
   const orderTotal = Number(order.order_total) || 0
   const callbackUrl =
