@@ -60,9 +60,17 @@ export async function POST(request: Request) {
     if (!product || ![1, 3, 5].includes(packSize) || !Number.isInteger(quantity) || quantity < 1) {
       return NextResponse.json({ error: 'Each line needs a product, pack size (1/3/5) and a whole quantity.' }, { status: 400 })
     }
-    const ppp = pricePerPack(product, packSize)
-    if (ppp == null) {
-      return NextResponse.json({ error: `No ${packSize}-pack price set for ${product.name}.` }, { status: 400 })
+    // Optional per-line price override. The admin is authenticated (cookie), so
+    // a custom price they type is trusted; otherwise fall back to the catalog.
+    const ovRaw = raw.unit_price
+    let ppp: number | null
+    if (ovRaw != null && ovRaw !== '' && Number.isFinite(Number(ovRaw)) && Number(ovRaw) >= 0) {
+      ppp = Number(ovRaw)
+    } else {
+      ppp = pricePerPack(product, packSize)
+      if (ppp == null) {
+        return NextResponse.json({ error: `No ${packSize}-pack price set for ${product.name} — set a custom $/pack for that line.` }, { status: 400 })
+      }
     }
     const lineTotal = ppp * quantity
     subtotal += lineTotal
@@ -76,7 +84,11 @@ export async function POST(request: Request) {
     })
   }
 
-  const shipping = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : FLAT_SHIPPING
+  // Shipping: optional admin override, else the usual free-over-$300 / flat rule.
+  const shipRaw = body?.shipping
+  const shipping = (shipRaw != null && shipRaw !== '' && Number.isFinite(Number(shipRaw)) && Number(shipRaw) >= 0)
+    ? Number(shipRaw)
+    : (subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : FLAT_SHIPPING)
   const orderTotal = subtotal + shipping
 
   const orderNumber = buildOrderNumber()
