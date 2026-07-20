@@ -100,14 +100,16 @@ export default function OrdersAdmin({ orders }: { orders: Order[] }) {
   const [labelMsg, setLabelMsg] = useState('')
   const [labelErr, setLabelErr] = useState('')
   const [testMode, setTestMode] = useState(false)
+  // Buying charges real postage, so it takes a second explicit confirmation.
+  const [confirmBuy, setConfirmBuy] = useState(false)
 
   function openLabelPanel(orderId: string) {
     setLabelFor(labelFor === orderId ? null : orderId)
-    setRates([]); setPickedRate(''); setLabelErr(''); setLabelMsg('')
+    setRates([]); setPickedRate(''); setLabelErr(''); setLabelMsg(''); setConfirmBuy(false)
   }
 
   async function loadRates(orderId: string) {
-    setRateBusy(true); setLabelErr(''); setLabelMsg(''); setRates([]); setPickedRate('')
+    setRateBusy(true); setLabelErr(''); setLabelMsg(''); setRates([]); setPickedRate(''); setConfirmBuy(false)
     try {
       const res = await fetch('/api/admin/shipping/rates', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -143,7 +145,7 @@ export default function OrdersAdmin({ orders }: { orders: Order[] }) {
         trackingNumber: json.trackingNumber,
       })
       setLabelMsg(`Label bought — ${rate.provider} ${rate.service}, tracking ${json.trackingNumber}. Customer emailed.`)
-      setRates([])
+      setRates([]); setConfirmBuy(false)
     } catch (e) {
       setLabelErr(e instanceof Error ? e.message : 'Could not buy the label.')
     } finally { setRateBusy(false) }
@@ -426,11 +428,40 @@ export default function OrdersAdmin({ orders }: { orders: Order[] }) {
                               </label>
                             ))}
                           </div>
-                          <button type="button" onClick={() => buyAndPrint(order.id)} disabled={rateBusy || !pickedRate}
-                            className="mt-3 w-full text-sm font-bold px-4 py-2.5 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-40">
-                            {rateBusy ? 'Buying…' : 'Buy Label & Print'}
-                          </button>
-                          <p className="mt-1.5 text-[11px] text-gray-500">Buys the selected rate, opens the label PDF to print, marks the order shipped, and emails the customer their tracking.</p>
+                          {!confirmBuy ? (
+                            <>
+                              <button type="button" onClick={() => setConfirmBuy(true)} disabled={rateBusy || !pickedRate}
+                                className="mt-3 w-full text-sm font-bold px-4 py-2.5 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-40">
+                                Buy Label & Print
+                              </button>
+                              <p className="mt-1.5 text-[11px] text-gray-500">Buys the selected rate, opens the label PDF to print, marks the order shipped, and emails the customer their tracking.</p>
+                            </>
+                          ) : (
+                            (() => {
+                              const sel = rates.find((r) => r.id === pickedRate)
+                              return (
+                                <div className={`mt-3 rounded-lg border-2 p-3 ${testMode ? 'border-amber-300 bg-amber-50' : 'border-red-300 bg-red-50'}`}>
+                                  <p className="text-sm font-bold text-gray-900">
+                                    {testMode ? 'Confirm (test mode — no charge)' : '⚠️ Confirm purchase — this charges real money'}
+                                  </p>
+                                  <p className="mt-1 text-sm text-gray-700">
+                                    Buy <strong>{sel?.provider} {sel?.service}</strong> for <strong>${sel?.amount}</strong>
+                                    {testMode ? ' (simulated — no postage is actually bought).' : '. Postage is charged to your Shippo account immediately and labels are non-refundable once printed.'}
+                                  </p>
+                                  <div className="mt-3 flex gap-2">
+                                    <button type="button" onClick={() => buyAndPrint(order.id)} disabled={rateBusy}
+                                      className="flex-1 text-sm font-bold px-4 py-2.5 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-40">
+                                      {rateBusy ? 'Buying…' : `Yes — buy for $${sel?.amount}`}
+                                    </button>
+                                    <button type="button" onClick={() => setConfirmBuy(false)} disabled={rateBusy}
+                                      className="px-4 py-2.5 rounded-lg border border-gray-300 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-40">
+                                      Cancel
+                                    </button>
+                                  </div>
+                                </div>
+                              )
+                            })()
+                          )}
                         </div>
                       )}
 
