@@ -46,7 +46,8 @@ export function shipFrom(): ShippoAddress {
     zip: process.env.SHIP_FROM_ZIP || '54401',
     country: 'US',
     email: process.env.SHIP_FROM_EMAIL || 'joshua@certipure.net',
-    phone: process.env.SHIP_FROM_PHONE || '',
+    // USPS refuses to create a label without a sender phone.
+    phone: process.env.SHIP_FROM_PHONE || '6087699922',
   }
 }
 
