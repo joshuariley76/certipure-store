@@ -25,7 +25,7 @@ function FeaturedCard({ product }: { product: any }) {
               {product.badge}
             </span>
           ) : null}
-          <img src={product.image_url || '/certipure-vial-product.jpg'} alt={product.name} className="w-full h-full object-cover" />
+          <img src={product.image_url || '/certipure-vial-product.jpg'} alt={product.name} className="w-full h-full object-contain p-4" />
         </div>
       </Link>
       <div className="p-4">
