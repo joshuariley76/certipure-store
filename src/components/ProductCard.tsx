@@ -12,7 +12,7 @@ export default function ProductCard({ product }: { product: any }) {
   return (
     <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden hover:-translate-y-1 hover:shadow-xl transition-all">
       <Link href={`/product/${product.slug}`}>
-        <div className="relative bg-gray-50 h-[220px] overflow-hidden">
+        <div className="relative bg-white aspect-[3/4] overflow-hidden">
           {product.stock_quantity === 0 ? (
             <span className="absolute top-3 left-3 text-[10px] font-bold px-2.5 py-1 rounded-full z-10 bg-amber-100 text-amber-800">
               Restock Soon

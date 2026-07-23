@@ -15,7 +15,7 @@ function FeaturedCard({ product }: { product: any }) {
   return (
     <div className="min-w-[250px] max-w-[250px] snap-start bg-white border border-gray-200 rounded-2xl overflow-hidden flex-shrink-0 hover:-translate-y-1 hover:shadow-xl transition-all">
       <Link href={`/product/${product.slug}`}>
-        <div className="relative bg-gray-50 h-[220px] overflow-hidden">
+        <div className="relative bg-white aspect-[3/4] overflow-hidden">
           {product.stock_quantity === 0 ? (
             <span className="absolute top-3 left-3 text-[10px] font-bold px-2.5 py-1 rounded-full z-10 bg-amber-100 text-amber-800">
               Restock Soon
@@ -25,7 +25,7 @@ function FeaturedCard({ product }: { product: any }) {
               {product.badge}
             </span>
           ) : null}
-          <img src={product.image_url || '/certipure-vial-product.jpg'} alt={product.name} className="w-full h-full object-contain p-4" />
+          <img src={product.image_url || '/certipure-vial-product.jpg'} alt={product.name} className="w-full h-full object-cover" />
         </div>
       </Link>
       <div className="p-4">
