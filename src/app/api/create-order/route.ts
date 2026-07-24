@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resend } from '@/lib/resend'
-import { codeMatches, discountAmountFor, DISCOUNT_CODE } from '@/lib/discount'
+import { resolveCode, discountFor, commissionFor, ownerForUser } from '@/lib/affiliate'
 
 // Where admin notifications go, and who emails are sent from. The certipure.net
 // domain must stay verified in Resend for these to deliver.
@@ -72,38 +72,46 @@ export async function POST(request: Request) {
   // session can't (orders history check below, stock deduction later).
   const admin = createAdminClient()
 
-  // First-order discount. We only apply it when the typed code matches AND this
-  // is genuinely the customer's first order — checked with the service-role
-  // client so row-level security can't let the check pass incorrectly. If a
-  // matching code is sent by a returning customer we reject the order outright
-  // (rather than silently charging full price) so the amount they were told to
-  // pay always equals the amount we store.
+  // Resolve any typed code. Affiliate codes (from the DB) give a discount every
+  // time they're entered; the legacy WELCOME code is first-order only.
+  const resolved = await resolveCode(discountCodeInput, admin)
+
   let discountAmount = 0
   let discountCodeStored: string | null = null
-  if (discountCodeInput && codeMatches(discountCodeInput)) {
+
+  if (resolved?.kind === 'legacy') {
+    // Legacy welcome discount: first order only. Reject a returning customer who
+    // sends it (rather than silently charging full price) so the amount they
+    // were told to pay always equals the amount we store.
     let priorOrders = 0
-    if (admin) {
-      const { count } = await admin
-        .from('orders')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-      priorOrders = count ?? 0
-    } else {
-      const { count } = await supabase
-        .from('orders')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-      priorOrders = count ?? 0
-    }
+    const client = admin || supabase
+    const { count } = await client
+      .from('orders')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+    priorOrders = count ?? 0
     if (priorOrders > 0) {
       return NextResponse.json(
         { error: 'The discount code is valid on your first order only. Please remove it and place your order again.' },
         { status: 400 },
       )
     }
-    discountAmount = discountAmountFor(subtotal)
-    discountCodeStored = DISCOUNT_CODE
+    discountAmount = discountFor(subtotal, resolved.percent)
+    discountCodeStored = resolved.code
+  } else if (resolved?.kind === 'affiliate') {
+    // Affiliate code: customer gets the discount every time they enter it.
+    discountAmount = discountFor(subtotal, resolved.affiliate.discount_percent)
+    discountCodeStored = resolved.affiliate.code
   }
+
+  // Affiliate attribution + commission (independent of the discount above).
+  // The affiliate that permanently owns this customer earns commission on EVERY
+  // order. If the customer isn't owned yet and just entered a valid affiliate
+  // code, that affiliate becomes the owner now (stamped on the profile below).
+  const existingOwner = await ownerForUser(user.id, admin)
+  const owner = existingOwner || (resolved?.kind === 'affiliate' ? resolved.affiliate : null)
+  const newlyTagged = !existingOwner && resolved?.kind === 'affiliate'
+  const commissionAmount = owner ? commissionFor(subtotal, owner.commission_percent) : 0
 
   const discountedSubtotal = subtotal - discountAmount
 
@@ -149,6 +157,10 @@ export async function POST(request: Request) {
       // never touch these columns (keeps checkout working even before the
       // discount_code / discount_amount columns are added to the orders table).
       ...(discountAmount > 0 ? { discount_code: discountCodeStored, discount_amount: discountAmount } : {}),
+      // Affiliate attribution + commission. Only written when the customer is
+      // owned by an affiliate (keeps checkout working before the affiliate
+      // columns exist).
+      ...(owner ? { affiliate_id: owner.id, affiliate_code: owner.code, commission_amount: commissionAmount } : {}),
       shipping_cost: shipping,
       tax: 0,
       order_total: orderTotal,
@@ -163,6 +175,18 @@ export async function POST(request: Request) {
 
   // Use whatever order number ended up in the database (in case it auto-fills).
   const displayNumber = order.order_number || orderNumber
+
+  // Permanently tag the customer to this affiliate the first time they use a
+  // valid affiliate code. From here on, that affiliate earns commission on all
+  // of this customer's orders (see ownerForUser). Best-effort — a failure never
+  // blocks the order.
+  if (admin && newlyTagged && owner) {
+    const { error: tagErr } = await admin
+      .from('profiles')
+      .update({ referred_by_id: owner.id, referred_by_code: owner.code })
+      .eq('id', user.id)
+    if (tagErr) console.error('Affiliate tag error:', tagErr)
+  }
 
   // Create order items
   const orderItems = cartItems.map((item: any) => ({

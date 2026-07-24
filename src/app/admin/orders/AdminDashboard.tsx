@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import OrdersAdmin from './OrdersAdmin'
 import InventoryAdmin from './InventoryAdmin'
 import InvoiceAdmin from './InvoiceAdmin'
@@ -49,6 +50,9 @@ export default function AdminDashboard({
           <button onClick={() => setTab('invoices')} className={tabClass(tab === 'invoices')}>
             Invoices
           </button>
+          <Link href="/admin/affiliates" className={tabClass(false)}>
+            Affiliates
+          </Link>
         </div>
       </div>
 
