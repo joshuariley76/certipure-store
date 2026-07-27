@@ -12,7 +12,7 @@ export default function ProductCard({ product }: { product: any }) {
   return (
     <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden hover:-translate-y-1 hover:shadow-xl transition-all">
       <Link href={`/product/${product.slug}`}>
-        <div className="relative bg-white aspect-[3/4] overflow-hidden">
+        <div className="relative flex aspect-[3/4] bg-white p-2.5">
           {product.stock_quantity === 0 ? (
             <span className="absolute top-3 left-3 text-[10px] font-bold px-2.5 py-1 rounded-full z-10 bg-amber-100 text-amber-800">
               Restock Soon
@@ -22,7 +22,9 @@ export default function ProductCard({ product }: { product: any }) {
               {product.badge}
             </span>
           ) : null}
-          <img src={product.image_url || '/certipure-vial-product.jpg'} alt={product.name} className="w-full h-full object-cover" />
+          <div className="flex flex-1 items-center justify-center rounded-xl border-2 border-[#1b2559] bg-white">
+            <img src={product.image_url || '/certipure-vial-product.jpg'} alt={product.name} className="h-full w-full object-contain p-[13%]" />
+          </div>
         </div>
       </Link>
       <div className="p-4">
