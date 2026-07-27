@@ -34,23 +34,18 @@ export default async function HomePage() {
 
   return (
     <main>
-      <section>
+      <section className="relative">
         <img src="/certipure-hero-image.jpg" alt="CertiPURE - Tested Trusted Affordable" className="w-full h-auto block" />
-      </section>
-
-      <section className="bg-white py-10 px-6">
-        <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z", label: "Verified Quality" },
-            { icon: "M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0", label: "Fast Shipping" },
-            { icon: "M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z", label: "Lab Grade" },
-            { icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z", label: "99%+ Purity" },
-          ].map((item, i) => (
-            <div key={i} className="bg-gray-50 border border-gray-200 rounded-xl py-8 px-4 text-center">
-              <svg className="w-10 h-10 mx-auto mb-3 text-[#2d3ca5]" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path d={item.icon}/></svg>
-              <p className="font-bold text-sm text-gray-900">{item.label}</p>
-            </div>
-          ))}
+        <div className="absolute left-1/2 top-[47%] w-[92%] max-w-xl -translate-x-1/2 text-center">
+          <h2 className="text-[#16234d] font-extrabold tracking-wide text-[clamp(0.8rem,2.05vw,1.75rem)]">
+            Premium Research Peptides
+          </h2>
+          <div className="mx-auto my-1.5 h-[2px] w-[15vw] max-w-[150px] bg-[#b1a068]" />
+          <div className="text-[#16234d] font-semibold leading-relaxed text-[clamp(0.6rem,1.4vw,1.05rem)]">
+            <p><span className="text-[#b1a068]">★</span> USA Lab Tested <span className="text-[#b1a068]">★</span> 99% Purity Guaranteed <span className="text-[#b1a068]">★</span></p>
+            <p><span className="text-[#b1a068]">★</span> Batch-Specific COAs <span className="text-[#b1a068]">★</span></p>
+            <p><span className="text-[#b1a068]">★</span> Fast Shipping <span className="text-[#b1a068]">★</span></p>
+          </div>
         </div>
       </section>
 
