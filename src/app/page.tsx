@@ -34,33 +34,10 @@ export default async function HomePage() {
 
   return (
     <main className="overflow-x-hidden">
-      <section className="relative">
-        <img src="/certipure-hero-image.jpg" alt="CertiPURE - Tested Trusted Affordable" className="w-full h-auto block" />
-        {/* Desktop/tablet: overlaid on the hero image. Hidden on phones where
-            the image is too short to read (a readable band follows below). */}
-        <div className="hidden sm:block absolute left-1/2 top-[47%] w-[92%] max-w-xl -translate-x-1/2 text-center">
-          <h2 className="text-[#16234d] font-extrabold tracking-wide text-[clamp(0.8rem,2.05vw,1.75rem)]">
-            Premium Research Peptides
-          </h2>
-          <div className="mx-auto my-1.5 h-[2px] w-[15vw] max-w-[150px] bg-[#b1a068]" />
-          <div className="text-[#16234d] font-semibold leading-relaxed text-[clamp(0.6rem,1.4vw,1.05rem)]">
-            <p><span className="text-[#b1a068]">★</span> USA Lab Tested <span className="text-[#b1a068]">★</span> 99% Purity Guaranteed <span className="text-[#b1a068]">★</span></p>
-            <p><span className="text-[#b1a068]">★</span> Batch-Specific COAs <span className="text-[#b1a068]">★</span></p>
-            <p><span className="text-[#b1a068]">★</span> Fast Shipping <span className="text-[#b1a068]">★</span></p>
-          </div>
-        </div>
-      </section>
-
-      {/* Phone-only readable version of the hero tagline. */}
-      <section className="sm:hidden bg-[#0f1a3d] px-5 py-6 text-center">
-        <h2 className="text-white font-extrabold text-2xl tracking-wide">Premium Research Peptides</h2>
-        <div className="mx-auto my-3 h-[2px] w-24 bg-[#b1a068]" />
-        <div className="text-white/95 font-semibold text-[15px] leading-8">
-          <p><span className="text-[#d8b866]">★</span> USA Lab Tested</p>
-          <p><span className="text-[#d8b866]">★</span> 99% Purity Guaranteed</p>
-          <p><span className="text-[#d8b866]">★</span> Batch-Specific COAs</p>
-          <p><span className="text-[#d8b866]">★</span> Fast Shipping</p>
-        </div>
+      {/* Hero: a single all-in-one image (wordmark, tagline, and badges are
+          part of the artwork), so no text overlay is needed. */}
+      <section>
+        <img src="/certipure-hero-2.jpg" alt="CertiPure — Premium Purity, Wholesale Pricing. USA Lab Tested, 99% Purity, Free Shipping." className="w-full h-auto block" />
       </section>
 
       {featured.length > 0 && (
