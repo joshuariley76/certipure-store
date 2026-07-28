@@ -48,11 +48,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const showGate = !user && !bypassGate
 
   return (
-    <html lang="en">
+    <html lang="en" className="overflow-x-hidden">
       <head>
         <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet" />
       </head>
-      <body className="bg-white text-gray-900 antialiased">
+      <body className="bg-white text-gray-900 antialiased overflow-x-hidden">
         <AgeGateModal />
         <CartProvider>
           {!showGate ? (
