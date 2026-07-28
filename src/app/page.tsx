@@ -33,10 +33,12 @@ export default async function HomePage() {
   const [featured, allProducts, coas, categories] = await Promise.all([getFeaturedProducts(), getAllProducts(), getCOAs(), getCategories()])
 
   return (
-    <main>
+    <main className="overflow-x-hidden">
       <section className="relative">
         <img src="/certipure-hero-image.jpg" alt="CertiPURE - Tested Trusted Affordable" className="w-full h-auto block" />
-        <div className="absolute left-1/2 top-[47%] w-[92%] max-w-xl -translate-x-1/2 text-center">
+        {/* Desktop/tablet: overlaid on the hero image. Hidden on phones where
+            the image is too short to read (a readable band follows below). */}
+        <div className="hidden sm:block absolute left-1/2 top-[47%] w-[92%] max-w-xl -translate-x-1/2 text-center">
           <h2 className="text-[#16234d] font-extrabold tracking-wide text-[clamp(0.8rem,2.05vw,1.75rem)]">
             Premium Research Peptides
           </h2>
@@ -46,6 +48,18 @@ export default async function HomePage() {
             <p><span className="text-[#b1a068]">★</span> Batch-Specific COAs <span className="text-[#b1a068]">★</span></p>
             <p><span className="text-[#b1a068]">★</span> Fast Shipping <span className="text-[#b1a068]">★</span></p>
           </div>
+        </div>
+      </section>
+
+      {/* Phone-only readable version of the hero tagline. */}
+      <section className="sm:hidden bg-[#0f1a3d] px-5 py-6 text-center">
+        <h2 className="text-white font-extrabold text-2xl tracking-wide">Premium Research Peptides</h2>
+        <div className="mx-auto my-3 h-[2px] w-24 bg-[#b1a068]" />
+        <div className="text-white/95 font-semibold text-[15px] leading-8">
+          <p><span className="text-[#d8b866]">★</span> USA Lab Tested</p>
+          <p><span className="text-[#d8b866]">★</span> 99% Purity Guaranteed</p>
+          <p><span className="text-[#d8b866]">★</span> Batch-Specific COAs</p>
+          <p><span className="text-[#d8b866]">★</span> Fast Shipping</p>
         </div>
       </section>
 
@@ -85,23 +99,23 @@ export default async function HomePage() {
           <div className="max-w-7xl mx-auto">
             <h2 className="text-3xl lg:text-4xl font-bold text-center mb-10" style={{ fontFamily: "'Playfair Display', serif" }}>Third-Party Lab Tested</h2>
             <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
-              <div className="max-h-[28rem] overflow-y-auto">
+              <div className="max-h-[28rem] overflow-auto">
                 <table className="w-full text-sm">
                   <thead className="sticky top-0 z-10 bg-[#161d54]">
                     <tr className="text-left text-xs text-white/40 uppercase tracking-wider">
-                      <th className="px-6 py-4">Product</th>
-                      <th className="px-6 py-4">Batch</th>
-                      <th className="px-6 py-4">Purity</th>
-                      <th className="px-6 py-4">Date</th>
+                      <th className="px-3 py-3 sm:px-6 sm:py-4">Product</th>
+                      <th className="px-3 py-3 sm:px-6 sm:py-4">Batch</th>
+                      <th className="px-3 py-3 sm:px-6 sm:py-4">Purity</th>
+                      <th className="px-3 py-3 sm:px-6 sm:py-4">Date</th>
                     </tr>
                   </thead>
                   <tbody>
                     {coas.map((coa: any) => (
                       <tr key={coa.id} className="border-t border-white/5">
-                        <td className="px-6 py-4 font-medium">{coa.product?.name}</td>
-                        <td className="px-6 py-4 text-white/50 font-mono text-xs">{coa.batch_number}</td>
-                        <td className="px-6 py-4 text-green-400 font-bold">{coa.purity || '—'}</td>
-                        <td className="px-6 py-4 text-white/50">{new Date(coa.test_date).toLocaleDateString()}</td>
+                        <td className="px-3 py-3 sm:px-6 sm:py-4 font-medium">{coa.product?.name}</td>
+                        <td className="px-3 py-3 sm:px-6 sm:py-4 text-white/50 font-mono text-xs">{coa.batch_number}</td>
+                        <td className="px-3 py-3 sm:px-6 sm:py-4 text-green-400 font-bold">{coa.purity || '—'}</td>
+                        <td className="px-3 py-3 sm:px-6 sm:py-4 text-white/50">{new Date(coa.test_date).toLocaleDateString()}</td>
                       </tr>
                     ))}
                   </tbody>
