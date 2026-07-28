@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
 export default function GateModal() {
-  const [mode, setMode] = useState<'signup' | 'login'>('signup')
+  const [mode, setMode] = useState<'signup' | 'login' | 'reset'>('signup')
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
@@ -15,6 +15,7 @@ export default function GateModal() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showConfirmationMessage, setShowConfirmationMessage] = useState(false)
+  const [resetSent, setResetSent] = useState(false)
   // True when the visitor has just clicked the email-verification link, so we
   // can greet them and open the sign-in form instead of the sign-up form.
   const [justVerified, setJustVerified] = useState(false)
@@ -150,6 +151,40 @@ export default function GateModal() {
     }
   }
 
+  // Send a password-reset email. Supabase mails a link back to /auth/callback,
+  // which signs the user in with a recovery session and forwards them to
+  // /auth/update-password to choose a new password.
+  async function handleReset(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+
+    if (!email.trim()) {
+      setError('Please enter your email address.')
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/auth/callback?next=/auth/update-password`,
+      })
+
+      if (resetError) {
+        setError(resetError.message)
+        setLoading(false)
+        return
+      }
+
+      setResetSent(true)
+      setLoading(false)
+    } catch (err) {
+      console.error(err)
+      setError('An unexpected error occurred. Please try again.')
+      setLoading(false)
+    }
+  }
+
   // Still checking for an existing session, or one was found and we're
   // redirecting — render nothing so the form never flashes.
   if (checkingSession) {
@@ -209,11 +244,17 @@ export default function GateModal() {
 
         {/* Heading */}
         <h2 className="mb-2 text-center text-2xl font-bold text-gray-900">
-          {mode === 'signup' ? 'Access Our Full Peptide Catalog' : 'Welcome Back'}
+          {mode === 'signup'
+            ? 'Access Our Full Peptide Catalog'
+            : mode === 'reset'
+            ? 'Reset Your Password'
+            : 'Welcome Back'}
         </h2>
         <p className="mb-6 text-center text-sm text-gray-600">
           {mode === 'signup'
             ? 'Create a free account to view all products, detailed research insights, and exclusive pricing.'
+            : mode === 'reset'
+            ? 'We’ll email you a secure link to set a new password.'
             : 'Sign in to access your account and browse our catalog.'}
         </p>
 
@@ -379,6 +420,20 @@ export default function GateModal() {
               />
             </div>
 
+            <div className="text-right">
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('reset')
+                  setError(null)
+                  setResetSent(false)
+                }}
+                className="text-sm font-medium text-blue-600 hover:text-blue-800"
+              >
+                Forgot password?
+              </button>
+            </div>
+
             <button
               type="submit"
               disabled={loading}
@@ -401,6 +456,69 @@ export default function GateModal() {
               </button>
             </p>
           </form>
+        )}
+
+        {/* Reset-password form */}
+        {mode === 'reset' && (
+          resetSent ? (
+            <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-4 text-center text-sm text-green-700">
+              <p className="font-semibold text-green-800">Check your email</p>
+              <p className="mt-1">
+                If an account exists for <span className="font-medium">{email}</span>, we&apos;ve sent a link to reset your password.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('login')
+                  setError(null)
+                  setResetSent(false)
+                }}
+                className="mt-4 font-semibold text-blue-600 underline hover:text-blue-800"
+              >
+                Back to sign in
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={handleReset} className="space-y-4">
+              <div>
+                <label htmlFor="resetEmail" className="mb-1 block text-sm font-medium text-gray-700">
+                  Email
+                </label>
+                <input
+                  id="resetEmail"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  placeholder="you@example.com"
+                  autoComplete="email"
+                  disabled={loading}
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {loading ? 'Sending...' : 'Send reset link'}
+              </button>
+
+              <p className="text-center text-sm text-gray-600">
+                Remembered your password?{' '}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode('login')
+                    setError(null)
+                  }}
+                  className="font-semibold text-blue-600 underline hover:text-blue-800"
+                >
+                  Sign in
+                </button>
+              </p>
+            </form>
+          )
         )}
 
         {/* Footer */}

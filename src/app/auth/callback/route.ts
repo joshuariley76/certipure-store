@@ -14,6 +14,14 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error) {
+      // Password-recovery links point here with `?next=/auth/update-password`.
+      // The code exchange above signs the user in with a recovery session, so
+      // we send them straight to the page where they set a new password.
+      const next = searchParams.get('next')
+      if (next && next.startsWith('/')) {
+        return NextResponse.redirect(`${origin}${next}`)
+      }
+
       // The account is now confirmed and signed in. Add them to the MailerLite
       // "Customers" group, which is what triggers the welcome email (with the
       // 10%-off offer). This is best-effort: a MailerLite hiccup must never
