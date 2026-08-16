@@ -291,7 +291,7 @@ export default function CheckoutClient() {
           {/* Payment */}
           <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-1">② Select Payment Method</h2>
-            <p className="text-sm text-gray-500 mb-4">We accept credit/debit card, cryptocurrency, or Cash App.</p>
+            <p className="text-sm text-gray-500 mb-4">We accept credit/debit card, cryptocurrency, Cash App, or Zelle.</p>
             <PaymentSelector total={total} selectedCoin={selectedCoin} onSelectCoin={setSelectedCoin} />
           </section>
 

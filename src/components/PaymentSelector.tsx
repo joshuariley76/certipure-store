@@ -13,6 +13,7 @@ const WALLET: Record<string, string> = {
   USDC: process.env.NEXT_PUBLIC_WALLET_USDC || '',
   SOL: process.env.NEXT_PUBLIC_WALLET_SOL || '',
   CASHAPP: process.env.NEXT_PUBLIC_WALLET_CASHAPP || '',
+  ZELLE: process.env.NEXT_PUBLIC_WALLET_ZELLE || '608-769-9922',
 }
 const COINS = [
   { coin: 'BTC', label: 'Bitcoin', network: 'Bitcoin', color: '#F7931A' },
@@ -46,6 +47,14 @@ function CashAppLogo({ className = 'h-8 w-8' }: { className?: string }) {
     <svg viewBox="0 0 40 40" className={className} aria-label="Cash App">
       <rect width="40" height="40" rx="9" fill="#00D632" />
       <text x="20" y="21" textAnchor="middle" dominantBaseline="central" fontFamily="Arial" fontWeight="800" fontSize="22" fill="#fff">$</text>
+    </svg>
+  )
+}
+function ZelleLogo({ className = 'h-8 w-8' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 40 40" className={className} aria-label="Zelle">
+      <rect width="40" height="40" rx="9" fill="#6D1ED4" />
+      <text x="20" y="21" textAnchor="middle" dominantBaseline="central" fontFamily="Arial" fontWeight="800" fontStyle="italic" fontSize="22" fill="#fff">Z</text>
     </svg>
   )
 }
@@ -202,6 +211,32 @@ export default function PaymentSelector({
             </>
           ) : (
             <p className="text-xs text-red-600">No Cash App $Cashtag configured yet.</p>
+          )}
+        </div>
+      )}
+
+      {/* Zelle */}
+      <Row
+        active={selectedCoin === 'ZELLE'}
+        onClick={() => onSelectCoin('ZELLE')}
+        logo={<ZelleLogo />}
+        title="Zelle"
+        subtitle="Send from your bank's Zelle"
+      />
+      {selectedCoin === 'ZELLE' && (
+        <div className="ml-1 p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-3">
+          {WALLET.ZELLE ? (
+            <>
+              <p className="text-sm text-gray-600">Send <strong className="text-gray-900">exactly ${total.toFixed(2)}</strong> via Zelle to:</p>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 bg-white border border-gray-300 rounded-lg px-3 py-2.5 text-sm font-mono break-all">{WALLET.ZELLE}</code>
+                <button type="button" onClick={() => copy(WALLET.ZELLE)} className="shrink-0 text-white px-4 py-2.5 rounded-lg text-sm font-medium" style={{ backgroundColor: '#6D1ED4' }}>{copied ? '✓' : 'Copy'}</button>
+              </div>
+              <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">⚠️ Send exactly ${total.toFixed(2)}, then upload your payment screenshot below.</p>
+              <p className="text-xs font-semibold text-white bg-red-600 border border-red-700 rounded-lg p-3">⚠️ Do NOT include the word &lsquo;peptide&rsquo; or any product names in your payment note. Payments with flagged notes will be cancelled.</p>
+            </>
+          ) : (
+            <p className="text-xs text-red-600">No Zelle number configured yet.</p>
           )}
         </div>
       )}

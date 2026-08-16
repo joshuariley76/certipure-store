@@ -41,8 +41,9 @@ export async function POST(request: Request) {
   // method. Cash App is the one non-crypto option, so we translate it into a
   // proper payment_method and a human-friendly label for the emails.
   const isCashApp    = cryptoCoin === 'CASHAPP'
-  const paymentMethod = isCashApp ? 'cashapp' : 'crypto'
-  const methodLabel   = isCashApp ? 'Cash App' : cryptoCoin
+  const isZelle      = cryptoCoin === 'ZELLE'
+  const paymentMethod = isCashApp ? 'cashapp' : isZelle ? 'zelle' : 'crypto'
+  const methodLabel   = isCashApp ? 'Cash App' : isZelle ? 'Zelle' : cryptoCoin
 
   if (!firstName || !lastName || !email || !address1 || !city || !state || !zip || !cryptoCoin || !screenshot) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })

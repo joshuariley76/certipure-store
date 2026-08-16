@@ -55,8 +55,9 @@ export async function POST(request: Request) {
   }
 
   const isCashApp = cryptoCoin === 'CASHAPP'
-  const paymentMethod = isCashApp ? 'cashapp' : 'crypto'
-  const methodLabel = isCashApp ? 'Cash App' : cryptoCoin
+  const isZelle = cryptoCoin === 'ZELLE'
+  const paymentMethod = isCashApp ? 'cashapp' : isZelle ? 'zelle' : 'crypto'
+  const methodLabel = isCashApp ? 'Cash App' : isZelle ? 'Zelle' : cryptoCoin
 
   // Store the screenshot under an invoice-scoped path (no user id available).
   const fileExt = (screenshot.name.split('.').pop() || 'png').toLowerCase()
