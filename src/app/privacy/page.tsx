@@ -84,7 +84,7 @@ export default function PrivacyPage() {
             <li><strong>Data Portability:</strong> Request a copy of your data in a portable format</li>
           </ul>
           <p className="mt-3">
-            To exercise any of these rights, email us at <a href="mailto:privacy@certipure.com" className="text-blue-600 hover:underline">privacy@certipure.com</a>. We will respond within 30 days.
+            To exercise any of these rights, email us at <a href="mailto:privacy@certipure.net" className="text-blue-600 hover:underline">privacy@certipure.net</a>. We will respond within 30 days.
           </p>
         </section>
 
@@ -112,7 +112,7 @@ export default function PrivacyPage() {
         <section>
           <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-3">11. Contact</h2>
           <p>
-            For any privacy-related questions or requests, contact us at <a href="mailto:privacy@certipure.com" className="text-blue-600 hover:underline">privacy@certipure.com</a>.
+            For any privacy-related questions or requests, contact us at <a href="mailto:privacy@certipure.net" className="text-blue-600 hover:underline">privacy@certipure.net</a>.
           </p>
         </section>
       </div>

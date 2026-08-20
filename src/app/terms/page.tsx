@@ -97,7 +97,7 @@ export default function TermsPage() {
         <section>
           <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-3">13. Contact</h2>
           <p>
-            Questions about these Terms? Contact us at <a href="mailto:support@certipure.com" className="text-blue-600 hover:underline">support@certipure.com</a>.
+            Questions about these Terms? Contact us at <a href="mailto:support@certipure.net" className="text-blue-600 hover:underline">support@certipure.net</a>.
           </p>
         </section>
       </div>

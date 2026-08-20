@@ -1,6 +1,23 @@
 import { supabase } from '@/lib/supabase'
 import CoaHistory, { type CoaRow } from '@/components/CoaHistory'
 
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Peptide Lab Testing & Certificates of Analysis | CertiPure',
+  description:
+    'See the third-party lab results behind every CertiPure batch. Purity, net content and endotoxin testing, with the full Certificate of Analysis published for each product.',
+  alternates: { canonical: '/testing' },
+  openGraph: {
+    title: 'Peptide Lab Testing & Certificates of Analysis | CertiPure',
+    description:
+      'Third-party lab results for every CertiPure batch — purity, net content and endotoxin testing, with full COAs published.',
+    url: '/testing',
+    siteName: 'CertiPure',
+    type: 'website',
+  },
+}
+
 export const dynamic = 'force-dynamic'
 
 // Build the COA history: every batch (old + new) as its own row, newest first.

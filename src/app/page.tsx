@@ -3,6 +3,14 @@ import Link from 'next/link'
 import ProductCard from '@/components/ProductCard'
 import FeaturedCarousel from '@/components/FeaturedCarousel'
 
+import type { Metadata } from 'next'
+
+// Title and description come from the root layout; this pins the homepage's
+// one official address so www/tracking variants don't compete with it.
+export const metadata: Metadata = {
+  alternates: { canonical: '/' },
+}
+
 export const dynamic = 'force-dynamic'
 
 async function getFeaturedProducts() {
@@ -37,7 +45,15 @@ export default async function HomePage() {
       {/* Hero: a single all-in-one image (wordmark, tagline, and badges are
           part of the artwork), so no text overlay is needed. */}
       <section>
-        <img src="/certipure-hero-2.jpg" alt="CertiPure — Premium Purity, Wholesale Pricing. USA Lab Tested, 99% Purity, Free Shipping." className="w-full h-auto block" />
+        <img
+          src="/certipure-hero-2.jpg"
+          alt="CertiPure — Premium Purity, Wholesale Pricing. USA Lab Tested, 99% Purity, Free Shipping."
+          width={1280}
+          height={720}
+          fetchPriority="high"
+          decoding="async"
+          className="w-full h-auto block"
+        />
       </section>
 
       {featured.length > 0 && (

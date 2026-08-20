@@ -220,7 +220,7 @@ export default function GateModal() {
             Got it — take me to sign in
           </button>
           <p className="mt-4 text-xs text-gray-400">
-            Didn&apos;t get the email? Check your spam folder or contact support@certipure.com
+            Didn&apos;t get the email? Check your spam folder or contact support@certipure.net
           </p>
         </div>
       </div>
@@ -523,7 +523,7 @@ export default function GateModal() {
 
         {/* Footer */}
         <p className="mt-6 text-center text-xs text-gray-500">
-          Questions? Contact support@certipure.com
+          Questions? Contact support@certipure.net
         </p>
       </div>
     </div>

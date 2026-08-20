@@ -8,6 +8,8 @@ import CoaThumbnail from '@/components/CoaThumbnail'
 
 export const dynamic = 'force-dynamic'
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://certipure.net'
+
 // Short, deterministic caption for a COA thumbnail, e.g. "Batch CPRT07-1 · Jun 29, 2026".
 const COA_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 function coaCaption(coa: any): string {
@@ -42,6 +44,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title,
     description,
+    // The single official address for this product, so Google doesn't
+    // treat tracking links or duplicates as separate competing pages.
+    alternates: { canonical: `/product/${slug}` },
     openGraph: {
       title,
       description,
@@ -88,8 +93,85 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const outOfStock = stock === 0
   const lowStock = stock !== null && stock > 0 && stock <= 10
 
+  // Structured data: this is what lets Google show the price, stock status and
+  // an image directly in the search result for this product.
+  const strength = `${product.size ?? ''}${product.unit ?? ''}`
+  const displayName = strength && !product.name.includes(strength)
+    ? `${product.name} (${strength})`
+    : product.name
+  const pageUrl = `${SITE_URL}/product/${slug}`
+  const rawImage = product.image_url || '/certipure-vial-product.jpg'
+  const imageUrl = rawImage.startsWith('http') ? rawImage : `${SITE_URL}${rawImage}`
+  const availability = outOfStock
+    ? 'https://schema.org/OutOfStock'
+    : 'https://schema.org/InStock'
+
+  // Products sold in 1/3/5-vial packs have a price range rather than one price.
+  const low = product.price_single ?? product.price
+  const high = product.price_5pack ?? product.price_3pack ?? product.price_single ?? product.price
+  const offers =
+    low != null && high != null && low !== high
+      ? {
+          '@type': 'AggregateOffer',
+          url: pageUrl,
+          priceCurrency: 'USD',
+          lowPrice: low,
+          highPrice: high,
+          offerCount: 3,
+          availability,
+          seller: { '@id': `${SITE_URL}/#organization` },
+        }
+      : {
+          '@type': 'Offer',
+          url: pageUrl,
+          priceCurrency: 'USD',
+          price: low ?? product.price,
+          availability,
+          itemCondition: 'https://schema.org/NewCondition',
+          seller: { '@id': `${SITE_URL}/#organization` },
+        }
+
+  const latestPurity = coas[0]?.purity || null
+
+  const productJsonLd: Record<string, any> = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    '@id': `${pageUrl}#product`,
+    name: displayName,
+    description: product.short_description || product.description || '',
+    url: pageUrl,
+    image: [imageUrl],
+    brand: { '@type': 'Brand', name: 'CertiPure' },
+    category: product.category?.name || 'Research Peptide',
+    offers,
+  }
+  if (product.sku) productJsonLd.sku = product.sku
+  if (latestPurity) {
+    productJsonLd.additionalProperty = [
+      { '@type': 'PropertyValue', name: 'Tested Purity', value: String(latestPurity) },
+    ]
+  }
+
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: SITE_URL },
+      { '@type': 'ListItem', position: 2, name: 'Shop', item: `${SITE_URL}/shop` },
+      { '@type': 'ListItem', position: 3, name: displayName, item: pageUrl },
+    ],
+  }
+
   return (
     <main className="bg-white min-h-screen">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
       <div className="max-w-6xl mx-auto px-4 py-6">
         <div className="text-sm text-gray-400 mb-6">
           <Link href="/" className="hover:text-[#2d3ca5]">Home</Link>
@@ -101,7 +183,13 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         <div className="grid md:grid-cols-2 gap-10 mb-16">
           <div className="flex flex-col gap-4">
             <div className="bg-gray-50 rounded-2xl p-8 flex items-center justify-center">
-              <img src={product.image_url || '/certipure-vial-product.jpg'} alt={product.name} className="max-h-[400px] w-auto object-contain" />
+              <img
+                src={product.image_url || '/certipure-vial-product.jpg'}
+                alt={`${displayName} research peptide vial with third-party COA — CertiPure`}
+                fetchPriority="high"
+                decoding="async"
+                className="max-h-[400px] w-auto object-contain"
+              />
             </div>
             {coaThumbs.length > 0 && (
               <div className={coaThumbs.length > 1 ? 'grid grid-cols-2 gap-3' : ''}>

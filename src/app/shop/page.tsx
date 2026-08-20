@@ -1,6 +1,23 @@
 import { supabase } from '@/lib/supabase'
 import ProductCard from '@/components/ProductCard'
 
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Shop Research Peptides — Full Catalog | CertiPure',
+  description:
+    'Browse the complete CertiPure catalog of research peptides. Every batch is third-party lab tested with a published Certificate of Analysis. Fast U.S. shipping.',
+  alternates: { canonical: '/shop' },
+  openGraph: {
+    title: 'Shop Research Peptides — Full Catalog | CertiPure',
+    description:
+      'Browse the complete CertiPure catalog of research peptides. Every batch third-party lab tested with a published COA.',
+    url: '/shop',
+    siteName: 'CertiPure',
+    type: 'website',
+  },
+}
+
 export const dynamic = 'force-dynamic'
 
 async function getProducts() {

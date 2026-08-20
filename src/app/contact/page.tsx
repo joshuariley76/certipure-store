@@ -1,3 +1,19 @@
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Contact CertiPure — Customer Support',
+  description:
+    'Questions about an order, a Certificate of Analysis, or shipping? Contact the CertiPure team — we typically respond within 24 hours.',
+  alternates: { canonical: '/contact' },
+  openGraph: {
+    title: 'Contact CertiPure — Customer Support',
+    description: 'Get in touch with the CertiPure team. We typically respond within 24 hours.',
+    url: '/contact',
+    siteName: 'CertiPure',
+    type: 'website',
+  },
+}
+
 export default function ContactPage() {
   return (
     <main className="min-h-screen bg-gray-50">

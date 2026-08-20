@@ -1,5 +1,22 @@
 import Link from 'next/link'
 
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'About CertiPure — U.S. Research Peptide Supplier',
+  description:
+    'CertiPure is a U.S.-based research peptide supplier. Every product ships with a publicly available Certificate of Analysis from an independent third-party lab.',
+  alternates: { canonical: '/about' },
+  openGraph: {
+    title: 'About CertiPure — U.S. Research Peptide Supplier',
+    description:
+      'A U.S.-based research peptide supplier built on one promise: the highest purity, backed by real third-party data.',
+    url: '/about',
+    siteName: 'CertiPure',
+    type: 'website',
+  },
+}
+
 export default function AboutPage() {
   return (
     <main className="min-h-screen bg-white">

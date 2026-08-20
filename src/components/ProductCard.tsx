@@ -23,7 +23,13 @@ export default function ProductCard({ product }: { product: any }) {
             </span>
           ) : null}
           <div className="flex flex-1 items-center justify-center rounded-xl border-2 border-[#1b2559] bg-white">
-            <img src={product.image_url || '/certipure-vial-product.jpg'} alt={product.name} className="h-full w-full object-contain p-[13%]" />
+            <img
+              src={product.image_url || '/certipure-vial-product.jpg'}
+              alt={`${displayName} research peptide vial — CertiPure`}
+              loading="lazy"
+              decoding="async"
+              className="h-full w-full object-contain p-[13%]"
+            />
           </div>
         </div>
       </Link>
