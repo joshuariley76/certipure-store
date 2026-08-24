@@ -6,6 +6,15 @@
 // for crypto and Cash App. The parent owns `selectedCoin` and the submit flow.
 import { useState } from 'react'
 
+// Card payments are hidden from customers while the PayRio account is sorted
+// out. Nothing has been removed: the card pages, the API routes and the
+// payment callback are all still here and still work. This only stops the
+// option being offered at checkout and on invoice pay links.
+//
+// To bring card payments back, change this one word to true.
+const CARD_PAYMENTS_ENABLED = false
+
+
 const WALLET: Record<string, string> = {
   BTC: process.env.NEXT_PUBLIC_WALLET_BTC || '',
   ETH: process.env.NEXT_PUBLIC_WALLET_ETH || '',
@@ -137,18 +146,22 @@ export default function PaymentSelector({
 
   return (
     <div className="space-y-3">
-      {/* Card */}
-      <Row
-        active={selectedCoin === 'PAYRIOX'}
-        onClick={() => onSelectCoin('PAYRIOX')}
-        logo={<><VisaLogo /><MastercardLogo /></>}
-        title="Credit / Debit Card"
-        subtitle="Visa & Mastercard — secure card checkout"
-      />
-      {selectedCoin === 'PAYRIOX' && (
-        <div className="ml-1 p-4 bg-blue-50 rounded-xl border border-blue-200">
-          <p className="text-sm font-medium text-blue-900">You&rsquo;ll be taken to our secure card page to pay <strong>${total.toFixed(2)}</strong>. Your order confirms automatically once the payment goes through.</p>
-        </div>
+      {/* Card — hidden while the PayRio account is being sorted out. */}
+      {CARD_PAYMENTS_ENABLED && (
+        <>
+          <Row
+            active={selectedCoin === 'PAYRIOX'}
+            onClick={() => onSelectCoin('PAYRIOX')}
+            logo={<><VisaLogo /><MastercardLogo /></>}
+            title="Credit / Debit Card"
+            subtitle="Visa & Mastercard — secure card checkout"
+          />
+          {selectedCoin === 'PAYRIOX' && (
+            <div className="ml-1 p-4 bg-blue-50 rounded-xl border border-blue-200">
+              <p className="text-sm font-medium text-blue-900">You&rsquo;ll be taken to our secure card page to pay <strong>${total.toFixed(2)}</strong>. Your order confirms automatically once the payment goes through.</p>
+            </div>
+          )}
+        </>
       )}
 
       {/* Crypto */}
