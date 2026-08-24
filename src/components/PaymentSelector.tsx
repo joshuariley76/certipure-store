@@ -14,6 +14,12 @@ import { useState } from 'react'
 // To bring card payments back, change this one word to true.
 const CARD_PAYMENTS_ENABLED = false
 
+// Bank transfer (ACH / eCheck) has no provider behind it yet, so the row is
+// hidden rather than promising customers something we cannot take. Set to true
+// once an account is live and the row is wired up.
+const BANK_TRANSFER_ENABLED = false
+
+
 
 const WALLET: Record<string, string> = {
   BTC: process.env.NEXT_PUBLIC_WALLET_BTC || '',
@@ -255,14 +261,18 @@ export default function PaymentSelector({
       )}
 
       {/* Link — coming soon (placeholder) */}
-      <Row
-        active={false}
-        disabled
-        logo={<LinkLogo />}
-        title="Link — Bank Transfer"
-        subtitle="Same-day secure bank transfer"
-        right={<span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-gray-200 text-gray-600 whitespace-nowrap">Coming soon</span>}
-      />
+      {/* Bank transfer — hidden until a provider is actually signed up.
+          It was advertising a method that does not exist. */}
+      {BANK_TRANSFER_ENABLED && (
+        <Row
+          active={false}
+          disabled
+          logo={<LinkLogo />}
+          title="Link — Bank Transfer"
+          subtitle="Same-day secure bank transfer"
+          right={<span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-gray-200 text-gray-600 whitespace-nowrap">Coming soon</span>}
+        />
+      )}
     </div>
   )
 }
