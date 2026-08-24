@@ -25,6 +25,9 @@ export default function CheckoutClient() {
   const [loading, setLoading]           = useState(true);
   const [submitting, setSubmitting]     = useState(false);
   const [selectedCoin, setSelectedCoin] = useState('');
+  // Odd cents (1-9) added to the total so the amount itself identifies the
+  // order on the payment alert. Fetched once the cart total is known.
+  const [oddCents, setOddCents] = useState<number | null>(null);
   const [screenshot, setScreenshot]     = useState<File | null>(null);
   const [preview, setPreview]           = useState<string | null>(null);
   const [error, setError]               = useState('');
@@ -62,9 +65,34 @@ export default function CheckoutClient() {
   // (api/create-order) recomputes this same logic so the stored total is
   // authoritative — these values are just for display here.
   const shipping        = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : FLAT_SHIPPING;
-  const total           = subtotal - discount + shipping;
+  // Which methods need a screenshot. Only the coins do: Zelle and Cash App are
+  // identified by the odd cents on the amount instead.
+  const CRYPTO_COINS = ['BTC', 'ETH', 'USDT', 'USDC', 'SOL'];
+  const isCrypto = CRYPTO_COINS.includes(selectedCoin);
+
+  const baseTotal       = subtotal - discount + shipping;
+  // What the customer is actually asked to send. Falls back to the plain total
+  // until the odd cents arrive, so nothing ever shows a wrong figure.
+  const total           = oddCents === null ? baseTotal : baseTotal + oddCents / 100;
   const remainingForFree = Math.max(0, FREE_SHIPPING_THRESHOLD - subtotal);
   const freeShipProgress = Math.min(100, (subtotal / FREE_SHIPPING_THRESHOLD) * 100);
+  // Reserve the odd cents as soon as there is a total to add them to. It must
+  // be settled before the customer sends any money.
+  useEffect(() => {
+    if (baseTotal <= 0) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/payment-amount?base=${baseTotal.toFixed(2)}`);
+        const data = await res.json();
+        if (!cancelled && typeof data.cents === 'number') setOddCents(data.cents);
+      } catch {
+        if (!cancelled) setOddCents(1);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [baseTotal]);
+
   const handle   = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
   function onFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -134,12 +162,15 @@ export default function CheckoutClient() {
       return;
     }
 
-    if (!screenshot)    { setError('Please upload a screenshot of your payment.'); return; }
+    if (isCrypto && !screenshot) { setError('Please upload a screenshot of your payment.'); return; }
     setSubmitting(true);
     const data = new FormData();
     Object.entries(form).forEach(([k, v]) => data.append(k, v));
+    // The figure the customer was shown, and paid.
+    data.append('oddCents', String(oddCents ?? 0));
     data.append('cryptoCoin', selectedCoin);
-    data.append('screenshot', screenshot);
+    // Only crypto orders carry one; Zelle and Cash App send none.
+    if (screenshot) data.append('screenshot', screenshot);
     if (appliedCode) data.append('discountCode', appliedCode);
     const res  = await fetch('/api/create-order', { method: 'POST', body: data });
     const json = await res.json();
@@ -296,7 +327,9 @@ export default function CheckoutClient() {
           </section>
 
           {/* Screenshot Upload — not needed for card payments (PayRio confirms automatically) */}
-          {selectedCoin !== 'PAYRIOX' && (
+          {/* Crypto only. Zelle and Cash App are matched by the odd cents on
+              the amount, so a screenshot there proves nothing. */}
+          {isCrypto && (
           <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-1">③ Upload Payment Screenshot</h2>
             <p className="text-sm text-gray-500 mb-4">Upload a screenshot from your wallet showing the completed transaction.</p>

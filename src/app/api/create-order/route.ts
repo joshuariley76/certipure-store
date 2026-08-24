@@ -3,9 +3,11 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resend } from '@/lib/resend'
 import { resolveCode, discountFor, commissionFor, ownerForUser } from '@/lib/affiliate'
+import { signOrderAction } from '@/lib/quick-action'
 
 // Where admin notifications go, and who emails are sent from. The certipure.net
 // domain must stay verified in Resend for these to deliver.
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.certipure.net'
 const ADMIN_EMAIL = 'joshua@certipure.net'
 const ORDERS_FROM = 'CertiPure Orders <noreply@certipure.net>'
 
@@ -45,15 +47,22 @@ export async function POST(request: Request) {
   const paymentMethod = isCashApp ? 'cashapp' : isZelle ? 'zelle' : 'crypto'
   const methodLabel   = isCashApp ? 'Cash App' : isZelle ? 'Zelle' : cryptoCoin
 
-  if (!firstName || !lastName || !email || !address1 || !city || !state || !zip || !cryptoCoin || !screenshot) {
+  if (!firstName || !lastName || !email || !address1 || !city || !state || !zip || !cryptoCoin) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
+  // Only the coins need a screenshot. Zelle and Cash App are matched by the odd
+  // cents on the amount, so demanding one there is friction that proves nothing.
+  const CRYPTO_COINS = ['BTC', 'ETH', 'USDT', 'USDC', 'SOL']
+  if (CRYPTO_COINS.includes(cryptoCoin) && !screenshot) {
+    return NextResponse.json({ error: 'Please upload a screenshot of your payment.' }, { status: 400 })
+  }
+
   // Basic safety checks on the uploaded payment screenshot.
-  if (!screenshot.type.startsWith('image/')) {
+  if (screenshot && !screenshot.type.startsWith('image/')) {
     return NextResponse.json({ error: 'Screenshot must be an image file.' }, { status: 400 })
   }
-  if (screenshot.size > MAX_SCREENSHOT_BYTES) {
+  if (screenshot && screenshot.size > MAX_SCREENSHOT_BYTES) {
     return NextResponse.json({ error: 'Screenshot is too large (max 10 MB).' }, { status: 400 })
   }
 
@@ -121,20 +130,28 @@ export async function POST(request: Request) {
   const FREE_SHIPPING_THRESHOLD = 300
   const FLAT_SHIPPING = 12.99
   const shipping = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : FLAT_SHIPPING
-  const orderTotal = discountedSubtotal + shipping
+  // The odd cents the customer was shown, and paid. Storing them makes the
+  // total match the payment alert exactly, which is the whole point.
+  const oddCents = Math.min(9, Math.max(0, Math.round(Number(formData.get('oddCents')) || 0)))
+  const orderTotal = discountedSubtotal + shipping + oddCents / 100
 
-  // Upload screenshot
-  const fileExt  = screenshot.name.split('.').pop() || 'png'
-  const fileName = `${user.id}/${Date.now()}.${fileExt}`
-  const fileBuffer = await screenshot.arrayBuffer()
+  // Upload the screenshot when one was sent. Zelle and Cash App orders arrive
+  // without one and simply have no screenshot on file.
+  let screenshotPath: string | null = null
+  if (screenshot) {
+    const fileExt = screenshot.name.split('.').pop() || 'png'
+    const fileName = `${user.id}/${Date.now()}.${fileExt}`
+    const fileBuffer = await screenshot.arrayBuffer()
 
-  const { data: uploadData, error: uploadError } = await supabase.storage
-    .from('order-screenshots')
-    .upload(fileName, fileBuffer, { contentType: screenshot.type, upsert: false })
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('order-screenshots')
+      .upload(fileName, fileBuffer, { contentType: screenshot.type, upsert: false })
 
-  if (uploadError) {
-    console.error('Screenshot upload error:', uploadError)
-    return NextResponse.json({ error: 'Failed to upload screenshot' }, { status: 500 })
+    if (uploadError) {
+      console.error('Screenshot upload error:', uploadError)
+      return NextResponse.json({ error: 'Failed to upload screenshot' }, { status: 500 })
+    }
+    screenshotPath = uploadData.path
   }
 
   // Create order. We pass a generated order_number; if the database generates
@@ -152,7 +169,7 @@ export async function POST(request: Request) {
       shipping_address: { line1: address1, line2: address2 || null, city, state, zip, country: 'US' },
       payment_method: paymentMethod,
       crypto_coin: cryptoCoin,
-      screenshot_url: uploadData.path,
+      screenshot_url: screenshotPath,
       subtotal,
       // Only written when a discount was actually applied, so ordinary orders
       // never touch these columns (keeps checkout working even before the
@@ -253,12 +270,27 @@ export async function POST(request: Request) {
 
   // Admin notification
   try {
+    // One-tap "Mark paid" straight from the phone. The link is signed with the
+    // admin password, so only a link this server produced will be accepted.
+    let verifyButton = ''
+    try {
+      const token = signOrderAction(order.id, 'verify')
+      const link = `${SITE_URL}/api/admin/quick-verify?order=${order.id}&token=${token}`
+      verifyButton =
+        `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 20px"><tr>` +
+        `<td style="background:#0d6b48;border-radius:8px"><a href="${link}" ` +
+        `style="display:inline-block;padding:15px 34px;color:#fff;text-decoration:none;font-weight:bold;font-size:16px">` +
+        `✅ Mark this order paid</a></td></tr></table>` +
+        `<p style="text-align:center;margin:-10px 0 18px;font-size:12px;color:#94a3b8">Tap once your payment alert shows $${order.order_total.toFixed(2)}</p>`
+    } catch {
+      // No ADMIN_KEY configured — the email still sends, just without the button.
+    }
     const itemList = cartItems.map((item: any) => `• ${item.products?.name} (${item.pack_size === 1 ? 'Single' : item.pack_size + '-Pack'}) ×${item.quantity} — $${(item.price_at_add * item.quantity).toFixed(2)}`).join('<br>')
     await resend.emails.send({
       from: ORDERS_FROM,
       to: ADMIN_EMAIL,
       subject: `🔔 New Order — ${displayNumber} (${methodLabel})`,
-      html: `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;color:#333"><h2>🔔 New Order Received</h2><div style="background:#f8fafc;padding:16px;border-radius:6px;margin:16px 0"><p style="margin:0"><strong>Order:</strong> ${displayNumber}</p><p style="margin:8px 0 0"><strong>Subtotal:</strong> $${subtotal.toFixed(2)}</p>${discountLineAdmin}<p style="margin:8px 0 0"><strong>Shipping:</strong> ${shipping === 0 ? 'FREE' : '$' + shipping.toFixed(2)}</p><p style="margin:8px 0 0"><strong>Total:</strong> $${order.order_total.toFixed(2)} (${methodLabel})</p><p style="margin:8px 0 0"><strong>Status:</strong> Pending Verification</p></div><h3>Customer</h3><p>${order.customer_name}<br>${email}<br>${phone || 'No phone'}</p><h3>Ship To</h3><p>${order.shipping_address.line1}${order.shipping_address.line2 ? ', ' + order.shipping_address.line2 : ''}<br>${order.shipping_address.city}, ${order.shipping_address.state} ${order.shipping_address.zip}</p><h3>Items</h3><p>${itemList}</p></body></html>`,
+      html: `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;color:#333"><h2 style="margin:0 0 4px">🔔 New Order — ${displayNumber}</h2><div style="background:#0f172a;border-radius:10px;padding:20px;margin:16px 0;text-align:center"><p style="margin:0;color:#94a3b8;font-size:13px;text-transform:uppercase;letter-spacing:1px">Watch for this exact amount</p><p style="margin:6px 0 0;color:#fff;font-size:34px;font-weight:bold">$${order.order_total.toFixed(2)}</p><p style="margin:6px 0 0;color:#94a3b8;font-size:14px">via ${methodLabel}</p></div>${verifyButton}<div style="background:#f8fafc;padding:16px;border-radius:6px;margin:16px 0"><p style="margin:0"><strong>Order:</strong> ${displayNumber}</p><p style="margin:8px 0 0"><strong>Subtotal:</strong> $${subtotal.toFixed(2)}</p>${discountLineAdmin}<p style="margin:8px 0 0"><strong>Shipping:</strong> ${shipping === 0 ? 'FREE' : '$' + shipping.toFixed(2)}</p><p style="margin:8px 0 0"><strong>Total:</strong> $${order.order_total.toFixed(2)} (${methodLabel})</p><p style="margin:8px 0 0"><strong>Status:</strong> Pending Verification</p></div><h3>Customer</h3><p>${order.customer_name}<br>${email}<br>${phone || 'No phone'}</p><h3>Ship To</h3><p>${order.shipping_address.line1}${order.shipping_address.line2 ? ', ' + order.shipping_address.line2 : ''}<br>${order.shipping_address.city}, ${order.shipping_address.state} ${order.shipping_address.zip}</p><h3>Items</h3><p>${itemList}</p></body></html>`,
     })
   } catch (e) { console.error('Admin email failed:', e) }
 
