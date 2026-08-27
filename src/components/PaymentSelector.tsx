@@ -137,9 +137,12 @@ function Row({
 }
 
 export default function PaymentSelector({
-  total, selectedCoin, onSelectCoin,
+  total, selectedCoin, onSelectCoin, isTestOrder = false,
 }: {
   total: number; selectedCoin: string; onSelectCoin: (v: string) => void
+  /** A $0 admin test order — there is nothing to send, so the payment
+   *  instructions are replaced with a short notice. */
+  isTestOrder?: boolean
 }) {
   const [copied, setCopied] = useState(false)
   const cryptoActive = isCoin(selectedCoin)
@@ -178,7 +181,7 @@ export default function PaymentSelector({
         title="Cryptocurrency"
         subtitle="Bitcoin, Ethereum, USDT, USDC, Solana"
       />
-      {cryptoActive && (
+      {cryptoActive && !isTestOrder && (
         <div className="ml-1 p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-3">
           <div className="flex flex-wrap gap-2">
             {COINS.map((opt) => {
@@ -217,7 +220,7 @@ export default function PaymentSelector({
         title="Cash App"
         subtitle="Pay with your $Cashtag"
       />
-      {selectedCoin === 'CASHAPP' && (
+      {selectedCoin === 'CASHAPP' && !isTestOrder && (
         <div className="ml-1 p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-3">
           {WALLET.CASHAPP ? (
             <>
@@ -226,7 +229,7 @@ export default function PaymentSelector({
                 <code className="flex-1 bg-white border border-gray-300 rounded-lg px-3 py-2.5 text-sm font-mono break-all">{WALLET.CASHAPP}</code>
                 <button type="button" onClick={() => copy(WALLET.CASHAPP)} className="shrink-0 bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium">{copied ? '✓' : 'Copy'}</button>
               </div>
-              <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">⚠️ Send exactly ${total.toFixed(2)}, then upload your payment screenshot below.</p>
+              <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">⚠️ Send exactly ${total.toFixed(2)} — the exact amount is how we match your payment to this order. No screenshot needed.</p>
             </>
           ) : (
             <p className="text-xs text-red-600">No Cash App $Cashtag configured yet.</p>
@@ -242,7 +245,7 @@ export default function PaymentSelector({
         title="Zelle"
         subtitle="Send from your bank's Zelle"
       />
-      {selectedCoin === 'ZELLE' && (
+      {selectedCoin === 'ZELLE' && !isTestOrder && (
         <div className="ml-1 p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-3">
           {WALLET.ZELLE ? (
             <>
@@ -251,12 +254,21 @@ export default function PaymentSelector({
                 <code className="flex-1 bg-white border border-gray-300 rounded-lg px-3 py-2.5 text-sm font-mono break-all">{WALLET.ZELLE}</code>
                 <button type="button" onClick={() => copy(WALLET.ZELLE)} className="shrink-0 text-white px-4 py-2.5 rounded-lg text-sm font-medium" style={{ backgroundColor: '#6D1ED4' }}>{copied ? '✓' : 'Copy'}</button>
               </div>
-              <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">⚠️ Send exactly ${total.toFixed(2)}, then upload your payment screenshot below.</p>
+              <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">⚠️ Send exactly ${total.toFixed(2)} — the exact amount is how we match your payment to this order. No screenshot needed.</p>
               <p className="text-xs font-semibold text-white bg-red-600 border border-red-700 rounded-lg p-3">⚠️ Do NOT include the word &lsquo;peptide&rsquo; or any product names in your payment note. Payments with flagged notes will be cancelled.</p>
             </>
           ) : (
             <p className="text-xs text-red-600">No Zelle number configured yet.</p>
           )}
+        </div>
+      )}
+
+      {isTestOrder && selectedCoin && (
+        <div className="ml-1 p-4 rounded-xl border-2 border-amber-300 bg-amber-50">
+          <p className="text-sm font-bold text-amber-900">Nothing to send</p>
+          <p className="mt-1 text-sm text-amber-800">
+            This is a $0 test order. Skip the payment step and press Place Order.
+          </p>
         </div>
       )}
 

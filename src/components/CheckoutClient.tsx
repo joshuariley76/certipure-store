@@ -356,7 +356,7 @@ export default function CheckoutClient() {
           <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-1">② Select Payment Method</h2>
             <p className="text-sm text-gray-500 mb-4">We accept cryptocurrency, Cash App, or Zelle.</p>
-            <PaymentSelector total={total} selectedCoin={selectedCoin} onSelectCoin={setSelectedCoin} />
+            <PaymentSelector total={total} selectedCoin={selectedCoin} onSelectCoin={setSelectedCoin} isTestOrder={isTestOrder} />
           </section>
 
           {/* Screenshot Upload — not needed for card payments (PayRio confirms automatically) */}
