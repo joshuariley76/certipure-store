@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import PaymentSelector from '@/components/PaymentSelector';
+import ProductName from '@/components/ProductName';
 import WaterUpsell from '@/components/WaterUpsell';
 import { priceCart, isWaterRow, unitPriceOf } from '@/lib/water-pricing';
 
@@ -225,7 +226,7 @@ export default function CheckoutClient() {
               {cartItems.map(item => (
                 <div key={item.id} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
                   <div>
-                    <p className="font-medium text-gray-900">{item.products?.name}</p>
+                    <p className="font-medium text-gray-900"><ProductName name={item.products?.name ?? ''} /></p>
                     <p className="text-sm text-gray-500">
                       {isWaterRow(item) ? `× ${item.quantity}` : `${item.pack_size === 1 ? 'Single Vial' : `${item.pack_size}-Pack`} × ${item.quantity}`}
                       {isWaterRow(item) && pricedCart.qualifies && (

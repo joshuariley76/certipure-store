@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import ProductName from '@/components/ProductName'
 import WaterAddOnNote from '@/components/WaterAddOnNote'
 import { WATER_SLUG } from '@/lib/water-pricing'
 
@@ -38,7 +39,7 @@ export default function ProductCard({ product }: { product: any }) {
       </Link>
       <div className="p-4">
         <p className="text-[11px] text-[#2d3ca5] font-semibold uppercase tracking-wider mb-1">{product.category?.name || 'Peptide'}</p>
-        <h3 className="font-bold text-sm text-gray-900">{displayName}</h3>
+        <h3 className="font-bold text-sm text-gray-900"><ProductName name={displayName} /></h3>
         <p className="text-xs text-gray-400 mt-1 line-clamp-2">{product.short_description}</p>
         <div className="flex items-center justify-between mt-3">
           <span className="text-xl font-extrabold text-[#2d3ca5]">

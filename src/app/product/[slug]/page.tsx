@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import ProductCard from '@/components/ProductCard'
 import PackSelector from '@/components/PackSelector'
+import ProductName from '@/components/ProductName'
 import WaterAddOnNote from '@/components/WaterAddOnNote'
 import { WATER_SLUG } from '@/lib/water-pricing'
 import CoaThumbnail from '@/components/CoaThumbnail'
@@ -207,7 +208,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           </div>
           <div>
             <p className="text-sm text-[#2d3ca5] font-semibold uppercase tracking-wider mb-2">{product.category?.name || 'Peptide'}</p>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">{product.name}</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2"><ProductName name={product.name} markClassName="h-[0.9em]" /></h1>
             <p className="text-gray-400 text-sm mb-4">{product.size}{product.unit} • SKU: {product.sku}</p>
             {outOfStock && (
               <span className="inline-block text-xs font-bold px-3 py-1 rounded-full bg-red-100 text-red-700 mb-4">

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useCart } from '@/lib/use-cart'
+import ProductName from '@/components/ProductName'
 import type { CartItem as CartItemType } from '@/lib/types'
 import { isWaterRow, unitPriceOf, WATER_PRICE_ALONE } from '@/lib/water-pricing'
 
@@ -92,7 +93,7 @@ export default function CartItem({
               onClick={onNavigate}
               className="block text-sm font-semibold text-gray-900 truncate hover:text-[#2d3ca5] transition"
             >
-              {product?.name ?? 'Product'}
+              <ProductName name={product?.name ?? 'Product'} />
             </Link>
             {!isWater && <p className="text-xs text-gray-500 mt-0.5">{packLabel}</p>}
             <p className="text-xs text-gray-400">
