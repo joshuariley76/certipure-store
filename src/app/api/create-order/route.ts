@@ -5,6 +5,12 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { resend } from '@/lib/resend'
 import { resolveCode, discountFor, commissionFor, ownerForUser } from '@/lib/affiliate'
 import { signOrderAction } from '@/lib/quick-action'
+import {
+  isAdminTestCode,
+  buildTestOrderNumber,
+  TEST_ORDER_PREFIX,
+} from '@/lib/admin-test-code'
+import { isAdminAuthenticated } from '@/lib/admin-auth'
 
 // Where admin notifications go, and who emails are sent from. The certipure.net
 // domain must stay verified in Resend for these to deliver.
@@ -52,10 +58,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
+  // A test order (the ADMIN code, from a browser signed in at /admin/login)
+  // totals $0, so there is no payment to screenshot and nothing to charge.
+  const isTestOrder = isAdminTestCode(discountCodeInput) && (await isAdminAuthenticated())
+
   // Only the coins need a screenshot. Zelle and Cash App are matched by the odd
   // cents on the amount, so demanding one there is friction that proves nothing.
   const CRYPTO_COINS = ['BTC', 'ETH', 'USDT', 'USDC', 'SOL']
-  if (CRYPTO_COINS.includes(cryptoCoin) && !screenshot) {
+  if (!isTestOrder && CRYPTO_COINS.includes(cryptoCoin) && !screenshot) {
     return NextResponse.json({ error: 'Please upload a screenshot of your payment.' }, { status: 400 })
   }
 
@@ -106,6 +116,9 @@ export async function POST(request: Request) {
       .from('orders')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id)
+      // Test orders are not real orders, so they must not use up a
+      // first-order-only code.
+      .not('order_number', 'like', `${TEST_ORDER_PREFIX}%`)
     priorOrders = count ?? 0
     if (priorOrders > 0) {
       return NextResponse.json(
@@ -127,8 +140,15 @@ export async function POST(request: Request) {
   // code, that affiliate becomes the owner now (stamped on the profile below).
   const existingOwner = await ownerForUser(user.id, admin)
   const owner = existingOwner || (resolved?.kind === 'affiliate' ? resolved.affiliate : null)
-  const newlyTagged = !existingOwner && resolved?.kind === 'affiliate'
-  const commissionAmount = owner ? commissionFor(subtotal, owner.commission_percent) : 0
+  const newlyTagged = !isTestOrder && !existingOwner && resolved?.kind === 'affiliate'
+  const commissionAmount = owner && !isTestOrder ? commissionFor(subtotal, owner.commission_percent) : 0
+
+  // A test order is zeroed out completely: the whole subtotal comes off, no
+  // shipping, no odd cents, and no commission for anyone.
+  if (isTestOrder) {
+    discountAmount = subtotal
+    discountCodeStored = 'ADMIN'
+  }
 
   const discountedSubtotal = subtotal - discountAmount
 
@@ -136,11 +156,13 @@ export async function POST(request: Request) {
   // so the stored total is authoritative (keep in sync with CheckoutClient.tsx).
   const FREE_SHIPPING_THRESHOLD = 300
   const FLAT_SHIPPING = 12.99
-  const shipping = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : FLAT_SHIPPING
+  const shipping = isTestOrder || subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : FLAT_SHIPPING
   // The odd cents the customer was shown, and paid. Storing them makes the
   // total match the payment alert exactly, which is the whole point.
-  const oddCents = Math.min(9, Math.max(0, Math.round(Number(formData.get('oddCents')) || 0)))
-  const orderTotal = discountedSubtotal + shipping + oddCents / 100
+  const oddCents = isTestOrder
+    ? 0
+    : Math.min(9, Math.max(0, Math.round(Number(formData.get('oddCents')) || 0)))
+  const orderTotal = isTestOrder ? 0 : discountedSubtotal + shipping + oddCents / 100
 
   // Upload the screenshot when one was sent. Zelle and Cash App orders arrive
   // without one and simply have no screenshot on file.
@@ -163,7 +185,7 @@ export async function POST(request: Request) {
 
   // Create order. We pass a generated order_number; if the database generates
   // its own on insert, that value is returned instead and used below.
-  const orderNumber = buildOrderNumber()
+  const orderNumber = isTestOrder ? buildTestOrderNumber() : buildOrderNumber()
   const { data: order, error: orderError } = await supabase
     .from('orders')
     .insert({
@@ -185,7 +207,7 @@ export async function POST(request: Request) {
       // Affiliate attribution + commission. Only written when the customer is
       // owned by an affiliate (keeps checkout working before the affiliate
       // columns exist).
-      ...(owner ? { affiliate_id: owner.id, affiliate_code: owner.code, commission_amount: commissionAmount } : {}),
+      ...(owner && !isTestOrder ? { affiliate_id: owner.id, affiliate_code: owner.code, commission_amount: commissionAmount } : {}),
       shipping_cost: shipping,
       tax: 0,
       order_total: orderTotal,
@@ -233,7 +255,9 @@ export async function POST(request: Request) {
   // blocks the order. Stock is counted in vials, so we subtract quantity ×
   // pack_size, clamped at 0 so it can never go negative. (`admin` is created
   // once near the top of this handler.)
-  if (admin) {
+  if (isTestOrder) {
+    console.log('Test order ' + orderNumber + ': stock left untouched.')
+  } else if (admin) {
     for (const item of cartItems as any[]) {
       const units = item.quantity * item.pack_size
       const { data: prod, error: readErr } = await admin
@@ -270,7 +294,7 @@ export async function POST(request: Request) {
     await resend.emails.send({
       from: ORDERS_FROM,
       to: email,
-      subject: `Order Received — ${displayNumber}`,
+      subject: `${isTestOrder ? "[TEST] " : ""}Order Received — ${displayNumber}`,
       html: `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;color:#333"><div style="background:#0f172a;padding:24px;border-radius:8px 8px 0 0;text-align:center"><h1 style="color:#fff;margin:0">CertiPure</h1><p style="color:#94a3b8;margin:8px 0 0">Research Peptides</p></div><div style="background:#fff;padding:32px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px"><h2 style="color:#0f172a;margin-top:0">Order Received</h2><p>Thank you! We received your payment screenshot and will verify your ${methodLabel} payment within 1–4 hours.</p><div style="background:#f8fafc;padding:16px;border-radius:6px;margin:20px 0"><p style="margin:0;font-size:14px;color:#64748b">Order Number</p><p style="margin:4px 0 0;font-size:20px;font-weight:bold;color:#0f172a">${displayNumber}</p></div><h3>Order Summary</h3><table style="width:100%;border-collapse:collapse"><thead><tr style="background:#f8fafc"><th style="padding:8px;text-align:left;font-size:13px;color:#64748b">Item</th><th style="padding:8px;text-align:center;font-size:13px;color:#64748b">Qty</th><th style="padding:8px;text-align:right;font-size:13px;color:#64748b">Price</th></tr></thead><tbody>${itemRows}</tbody><tfoot><tr><td colspan="2" style="padding:8px;text-align:right;color:#64748b">Subtotal:</td><td style="padding:8px;text-align:right">$${subtotal.toFixed(2)}</td></tr>${discountRowCustomer}<tr><td colspan="2" style="padding:8px;text-align:right;color:#64748b">Shipping:</td><td style="padding:8px;text-align:right">${shipping === 0 ? '<span style="color:#16a34a;font-weight:bold">FREE</span>' : '$' + shipping.toFixed(2)}</td></tr><tr><td colspan="2" style="padding:12px 8px 8px;font-weight:bold;text-align:right;border-top:1px solid #e2e8f0">Total:</td><td style="padding:12px 8px 8px;font-weight:bold;text-align:right;border-top:1px solid #e2e8f0">$${order.order_total.toFixed(2)}</td></tr></tfoot></table><h3>Shipping To</h3><p style="margin:0">${order.customer_name}<br>${order.shipping_address.line1}${order.shipping_address.line2 ? '<br>' + order.shipping_address.line2 : ''}<br>${order.shipping_address.city}, ${order.shipping_address.state} ${order.shipping_address.zip}</p><div style="margin-top:24px;padding:16px;background:#fffbeb;border:1px solid #fbbf24;border-radius:6px"><p style="margin:0;font-size:14px"><strong>What's next?</strong> Once payment is verified we'll email you a shipping confirmation with tracking. Most orders ship within 1–2 business days.</p></div><p style="margin-top:24px;font-size:13px;color:#64748b">Questions? Email support@certipure.net<br><br><em>All products sold for research purposes only. Not for human consumption.</em></p></div></body></html>`,
     })
   } catch (e) { console.error('Customer email failed:', e) }
@@ -296,7 +320,7 @@ export async function POST(request: Request) {
     await resend.emails.send({
       from: ORDERS_FROM,
       to: ADMIN_EMAIL,
-      subject: `🔔 New Order — ${displayNumber} (${methodLabel})`,
+      subject: `${isTestOrder ? "[TEST] " : "🔔 "}New Order — ${displayNumber} (${methodLabel})`,
       html: `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;color:#333"><h2 style="margin:0 0 4px">🔔 New Order — ${displayNumber}</h2><div style="background:#0f172a;border-radius:10px;padding:20px;margin:16px 0;text-align:center"><p style="margin:0;color:#94a3b8;font-size:13px;text-transform:uppercase;letter-spacing:1px">Watch for this exact amount</p><p style="margin:6px 0 0;color:#fff;font-size:34px;font-weight:bold">$${order.order_total.toFixed(2)}</p><p style="margin:6px 0 0;color:#94a3b8;font-size:14px">via ${methodLabel}</p></div>${verifyButton}<div style="background:#f8fafc;padding:16px;border-radius:6px;margin:16px 0"><p style="margin:0"><strong>Order:</strong> ${displayNumber}</p><p style="margin:8px 0 0"><strong>Subtotal:</strong> $${subtotal.toFixed(2)}</p>${discountLineAdmin}<p style="margin:8px 0 0"><strong>Shipping:</strong> ${shipping === 0 ? 'FREE' : '$' + shipping.toFixed(2)}</p><p style="margin:8px 0 0"><strong>Total:</strong> $${order.order_total.toFixed(2)} (${methodLabel})</p><p style="margin:8px 0 0"><strong>Status:</strong> Pending Verification</p></div><h3>Customer</h3><p>${order.customer_name}<br>${email}<br>${phone || 'No phone'}</p><h3>Ship To</h3><p>${order.shipping_address.line1}${order.shipping_address.line2 ? ', ' + order.shipping_address.line2 : ''}<br>${order.shipping_address.city}, ${order.shipping_address.state} ${order.shipping_address.zip}</p><h3>Items</h3><p>${itemList}</p></body></html>`,
     })
   } catch (e) { console.error('Admin email failed:', e) }

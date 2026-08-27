@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveCode } from '@/lib/affiliate'
+import { isAdminTestCode } from '@/lib/admin-test-code'
+import { isAdminAuthenticated } from '@/lib/admin-auth'
 
 // Checks a promo/affiliate code for the signed-in customer so the checkout form
 // can show the discounted total *before* they send payment. Display-only —
@@ -19,6 +21,19 @@ export async function POST(request: Request) {
     code = typeof body?.code === 'string' ? body.code : ''
   } catch {
     return NextResponse.json({ valid: false, reason: 'Invalid request.' }, { status: 400 })
+  }
+
+  // The ADMIN test code: only honoured when this browser is also signed in
+  // at /admin/login. Anyone else typing it falls through and is told the code
+  // isn't valid, which is what any wrong code gets.
+  if (isAdminTestCode(code) && (await isAdminAuthenticated())) {
+    return NextResponse.json({
+      valid: true,
+      code: 'ADMIN',
+      percent: 100,
+      test: true,
+      note: 'Test order — total will be $0 and nothing will ship.',
+    })
   }
 
   const admin = createAdminClient()

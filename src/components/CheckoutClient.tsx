@@ -45,6 +45,8 @@ export default function CheckoutClient() {
   const [appliedCode, setAppliedCode]   = useState('');
   const [appliedPercent, setAppliedPercent] = useState(0);
   const [discountMsg, setDiscountMsg]   = useState('');
+  // Set when the ADMIN code is accepted: the order zeroes out and nothing ships.
+  const [isTestOrder, setIsTestOrder]   = useState(false);
   const [applyingCode, setApplyingCode] = useState(false);
 
   useEffect(() => { loadCart(); }, []);
@@ -70,16 +72,17 @@ export default function CheckoutClient() {
   // Shipping: free at $300+, otherwise a $12.99 flat rate. The server
   // (api/create-order) recomputes this same logic so the stored total is
   // authoritative — these values are just for display here.
-  const shipping        = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : FLAT_SHIPPING;
+  const shipping        = isTestOrder || subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : FLAT_SHIPPING;
   // Which methods need a screenshot. Only the coins do: Zelle and Cash App are
   // identified by the odd cents on the amount instead.
   const CRYPTO_COINS = ['BTC', 'ETH', 'USDT', 'USDC', 'SOL'];
   const isCrypto = CRYPTO_COINS.includes(selectedCoin);
 
-  const baseTotal       = subtotal - discount + shipping;
+  const baseTotal       = isTestOrder ? 0 : subtotal - discount + shipping;
   // What the customer is actually asked to send. Falls back to the plain total
-  // until the odd cents arrive, so nothing ever shows a wrong figure.
-  const total           = oddCents === null ? baseTotal : baseTotal + oddCents / 100;
+  // until the odd cents arrive, so nothing ever shows a wrong figure. A test
+  // order has nothing to send, so it skips the odd cents entirely.
+  const total           = isTestOrder ? 0 : oddCents === null ? baseTotal : baseTotal + oddCents / 100;
   const remainingForFree = Math.max(0, FREE_SHIPPING_THRESHOLD - subtotal);
   const freeShipProgress = Math.min(100, (subtotal / FREE_SHIPPING_THRESHOLD) * 100);
   // Reserve the odd cents as soon as there is a total to add them to. It must
@@ -123,9 +126,14 @@ export default function CheckoutClient() {
       if (json.valid) {
         setAppliedCode(json.code);
         setAppliedPercent(json.percent);
-        setDiscountMsg(`${json.percent}% off applied!`);
+        setIsTestOrder(Boolean(json.test));
+        setDiscountMsg(
+          json.test
+            ? json.note || 'Test order — total will be $0 and nothing will ship.'
+            : `${json.percent}% off applied!`,
+        );
       } else {
-        setAppliedCode(''); setAppliedPercent(0);
+        setAppliedCode(''); setAppliedPercent(0); setIsTestOrder(false);
         setDiscountMsg(json.reason || "That code isn't valid.");
       }
     } catch {
@@ -136,7 +144,7 @@ export default function CheckoutClient() {
   }
 
   function removeDiscount() {
-    setAppliedCode(''); setAppliedPercent(0); setDiscountCode(''); setDiscountMsg('');
+    setAppliedCode(''); setAppliedPercent(0); setIsTestOrder(false); setDiscountCode(''); setDiscountMsg('');
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -197,6 +205,17 @@ export default function CheckoutClient() {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-3xl mx-auto px-4">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">Checkout</h1>
+
+        {isTestOrder && (
+          <div className="mb-6 rounded-xl border-2 border-amber-400 bg-amber-50 px-5 py-4">
+            <p className="text-sm font-bold text-amber-900">Test order — nothing will be charged or shipped</p>
+            <p className="mt-1 text-sm text-amber-800">
+              The ADMIN code is applied, so this order totals $0. No payment is needed, stock
+              is left alone, and it will show up as <strong>CP-TEST-…</strong> in your admin
+              list. Remove the code to place a real order.
+            </p>
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="space-y-6">
 
           {/* Order Summary */}

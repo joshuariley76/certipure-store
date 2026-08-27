@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { isAdminTestCode } from '@/lib/admin-test-code'
 import { priceCart, unitPriceOf } from '@/lib/water-pricing'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -73,6 +74,15 @@ export async function POST(request: Request) {
   const pricedCart = priceCart(cartItems as any[])
   const subtotal = pricedCart.subtotal
   const unitPriceFor = (item: any) => unitPriceOf(item, pricedCart.qualifies)
+
+  // A $0 order has nothing for a card processor to charge, so the test code
+  // is not accepted on this route. Any other payment method handles it.
+  if (isAdminTestCode(discountCodeInput)) {
+    return NextResponse.json(
+      { error: 'The ADMIN test code cannot be used with card payment. Pick any other payment method to place a $0 test order.' },
+      { status: 400 },
+    )
+  }
 
   const admin = createAdminClient()
 
