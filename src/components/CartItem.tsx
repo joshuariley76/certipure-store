@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useCart } from '@/lib/use-cart'
 import type { CartItem as CartItemType } from '@/lib/types'
+import { isWaterRow, unitPriceOf, WATER_PRICE_ALONE } from '@/lib/water-pricing'
 
 const MIN_QTY = 1
 const MAX_QTY = 10
@@ -23,10 +24,14 @@ export default function CartItem({
   onNavigate?: () => void
   compact?: boolean
 }) {
-  const { updateQuantity, removeFromCart } = useCart()
+  const { updateQuantity, removeFromCart, waterQualifies } = useCart()
   const [busy, setBusy] = useState(false)
 
-  const unitPrice = Number(item.price_at_add)
+  // Water is priced by the rule in lib/water-pricing.ts, not by what it cost
+  // when it was added — removing the peptide has to put it back to $15.
+  const isWater = isWaterRow(item)
+  const unitPrice = unitPriceOf(item, waterQualifies)
+  const showsDiscount = isWater && unitPrice < WATER_PRICE_ALONE
   const lineTotal = unitPrice * item.quantity
   const packLabel = PACK_LABEL[item.pack_size] ?? `${item.pack_size}-Pack`
   const product = item.product
@@ -89,8 +94,18 @@ export default function CartItem({
             >
               {product?.name ?? 'Product'}
             </Link>
-            <p className="text-xs text-gray-500 mt-0.5">{packLabel}</p>
-            <p className="text-xs text-gray-400">${unitPrice.toFixed(2)} each</p>
+            {!isWater && <p className="text-xs text-gray-500 mt-0.5">{packLabel}</p>}
+            <p className="text-xs text-gray-400">
+              {showsDiscount && (
+                <span className="line-through mr-1">${WATER_PRICE_ALONE.toFixed(2)}</span>
+              )}
+              ${unitPrice.toFixed(2)} each
+            </p>
+            {showsDiscount && (
+              <p className="text-xs font-semibold text-green-700 mt-0.5">
+                Add-on price applied
+              </p>
+            )}
           </div>
           <button
             type="button"

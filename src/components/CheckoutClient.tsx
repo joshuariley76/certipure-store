@@ -3,6 +3,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import PaymentSelector from '@/components/PaymentSelector';
+import WaterUpsell from '@/components/WaterUpsell';
+import { priceCart, isWaterRow, unitPriceOf } from '@/lib/water-pricing';
 
 // Shipping rules — keep in sync with api/create-order/route.ts.
 const FREE_SHIPPING_THRESHOLD = 300;   // orders at/above this ship free
@@ -57,7 +59,11 @@ export default function CheckoutClient() {
     setLoading(false);
   }
 
-  const subtotal = cartItems.reduce((s, i) => s + i.price_at_add * i.quantity, 0);
+  // Water reprices depending on what else is in the cart, so the subtotal
+  // comes from the shared rule (lib/water-pricing.ts). /api/create-order runs
+  // the very same function, so what is shown here is what gets charged.
+  const pricedCart = priceCart(cartItems);
+  const subtotal = pricedCart.subtotal;
   // Discount preview. Uses the exact same formula as src/lib/discount.ts so the
   // amount shown here matches what /api/create-order stores and charges.
   const discount        = appliedPercent ? Math.round(subtotal * appliedPercent) / 100 : 0;
@@ -201,11 +207,19 @@ export default function CheckoutClient() {
                 <div key={item.id} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
                   <div>
                     <p className="font-medium text-gray-900">{item.products?.name}</p>
-                    <p className="text-sm text-gray-500">{item.pack_size === 1 ? 'Single Vial' : `${item.pack_size}-Pack`} × {item.quantity}</p>
+                    <p className="text-sm text-gray-500">
+                      {isWaterRow(item) ? `× ${item.quantity}` : `${item.pack_size === 1 ? 'Single Vial' : `${item.pack_size}-Pack`} × ${item.quantity}`}
+                      {isWaterRow(item) && pricedCart.qualifies && (
+                        <span className="ml-2 text-green-700 font-semibold">add-on price</span>
+                      )}
+                    </p>
                   </div>
-                  <span className="font-semibold">${(item.price_at_add * item.quantity).toFixed(2)}</span>
+                  <span className="font-semibold">${(unitPriceOf(item, pricedCart.qualifies) * item.quantity).toFixed(2)}</span>
                 </div>
               ))}
+            </div>
+            <div className="mt-4">
+              <WaterUpsell onAdded={loadCart} />
             </div>
             <div className="mt-4 pt-4 border-t border-gray-200 space-y-2">
               <div className="flex justify-between text-sm">

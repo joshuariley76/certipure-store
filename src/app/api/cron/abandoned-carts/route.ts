@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { priceCart, unitPriceOf } from '@/lib/water-pricing'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resend, FROM_EMAIL } from '@/lib/resend'
 import type { CartItem } from '@/lib/types'
@@ -108,11 +109,14 @@ export async function GET(request: Request) {
     if (!SEND_FOR_REAL) continue // dry run — count it, send nothing
 
     const firstName = profile.first_name || 'there'
+    // Price the abandoned cart the same way the real cart does, so the
+    // reminder email never quotes a figure checkout won't honour.
+    const pricedCart = priceCart(g.items as any[])
     const rows = g.items
       .map((it) => {
         const name = it.product?.name || 'Research item'
         const pack = it.pack_size === 1 ? 'Single Vial' : `${it.pack_size}-Pack`
-        const line = (Number(it.price_at_add) * it.quantity).toFixed(2)
+        const line = (unitPriceOf(it as any, pricedCart.qualifies) * it.quantity).toFixed(2)
         return `<tr><td style="padding:8px;border-bottom:1px solid #eee">${name} (${pack})</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:center">${it.quantity}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right">$${line}</td></tr>`
       })
       .join('')

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { priceCart, unitPriceOf } from '@/lib/water-pricing'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resend } from '@/lib/resend'
@@ -76,7 +77,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Cart is empty' }, { status: 400 })
   }
 
-  const subtotal = cartItems.reduce((sum: number, item: any) => sum + item.price_at_add * item.quantity, 0)
+  // Water reprices depending on what else is in the cart, so the charged
+  // subtotal comes from the shared rule (lib/water-pricing.ts) rather than
+  // from price_at_add. CheckoutClient shows the customer the result of this
+  // exact same function, so the figure they saw is the figure they pay.
+  const pricedCart = priceCart(cartItems as any[])
+  const subtotal = pricedCart.subtotal
+  const unitPriceFor = (item: any) => unitPriceOf(item, pricedCart.qualifies)
 
   // The service-role client lets us read/write tables the customer's own
   // session can't (orders history check below, stock deduction later).
@@ -213,8 +220,8 @@ export async function POST(request: Request) {
     product_name_snapshot: item.products?.name || 'Unknown Product',
     pack_size: item.pack_size,
     quantity: item.quantity,
-    price_per_pack: item.price_at_add,
-    line_total: item.price_at_add * item.quantity,
+    price_per_pack: unitPriceFor(item),
+    line_total: unitPriceFor(item) * item.quantity,
   }))
 
   const { error: itemsError } = await supabase.from('order_items').insert(orderItems)
@@ -259,7 +266,7 @@ export async function POST(request: Request) {
 
   // Customer email
   try {
-    const itemRows = cartItems.map((item: any) => `<tr><td style="padding:8px;border-bottom:1px solid #eee">${item.products?.name} (${item.pack_size === 1 ? 'Single' : item.pack_size + '-Pack'})</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:center">${item.quantity}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right">$${(item.price_at_add * item.quantity).toFixed(2)}</td></tr>`).join('')
+    const itemRows = cartItems.map((item: any) => `<tr><td style="padding:8px;border-bottom:1px solid #eee">${item.products?.name} (${item.pack_size === 1 ? 'Single' : item.pack_size + '-Pack'})</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:center">${item.quantity}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right">$${(unitPriceFor(item) * item.quantity).toFixed(2)}</td></tr>`).join('')
     await resend.emails.send({
       from: ORDERS_FROM,
       to: email,
@@ -285,7 +292,7 @@ export async function POST(request: Request) {
     } catch {
       // No ADMIN_KEY configured — the email still sends, just without the button.
     }
-    const itemList = cartItems.map((item: any) => `• ${item.products?.name} (${item.pack_size === 1 ? 'Single' : item.pack_size + '-Pack'}) ×${item.quantity} — $${(item.price_at_add * item.quantity).toFixed(2)}`).join('<br>')
+    const itemList = cartItems.map((item: any) => `• ${item.products?.name} (${item.pack_size === 1 ? 'Single' : item.pack_size + '-Pack'}) ×${item.quantity} — $${(unitPriceFor(item) * item.quantity).toFixed(2)}`).join('<br>')
     await resend.emails.send({
       from: ORDERS_FROM,
       to: ADMIN_EMAIL,

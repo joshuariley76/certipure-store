@@ -1,8 +1,11 @@
 import Link from 'next/link'
+import WaterAddOnNote from '@/components/WaterAddOnNote'
+import { WATER_SLUG } from '@/lib/water-pricing'
 
 // Catalog/listing card. Tapping anywhere takes the customer to the product
 // detail page, where pack size (1/3/5 vials) and Add to Cart live.
 export default function ProductCard({ product }: { product: any }) {
+  const isWater = product.slug === WATER_SLUG
   // Some product names already include the strength (e.g. "GHK-Cu (50mg)"), so
   // only append it when it isn't already in the name — avoids "(50mg) (50mg)".
   const strength = `${product.size ?? ''}${product.unit ?? ''}`
@@ -50,6 +53,7 @@ export default function ProductCard({ product }: { product: any }) {
             View Product
           </Link>
         </div>
+        {isWater && <WaterAddOnNote />}
       </div>
     </div>
   )

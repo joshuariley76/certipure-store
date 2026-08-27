@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import Link from 'next/link'
 import { useCart } from '@/lib/use-cart'
 import CartItem from '@/components/CartItem'
+import WaterUpsell from '@/components/WaterUpsell'
 
 export default function CartDrawer() {
   const { items, itemCount, subtotal, isDrawerOpen, closeDrawer, isLoading } = useCart()
@@ -76,13 +77,18 @@ export default function CartDrawer() {
               </button>
             </div>
           ) : (
-            <ul>
-              {items.map((item) => (
-                <li key={item.id}>
-                  <CartItem item={item} onNavigate={closeDrawer} compact />
-                </li>
-              ))}
-            </ul>
+            <>
+              <ul>
+                {items.map((item) => (
+                  <li key={item.id}>
+                    <CartItem item={item} onNavigate={closeDrawer} compact />
+                  </li>
+                ))}
+              </ul>
+              <div className="pb-4 pt-1">
+                <WaterUpsell compact />
+              </div>
+            </>
           )}
         </div>
 

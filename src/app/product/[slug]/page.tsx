@@ -4,6 +4,8 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import ProductCard from '@/components/ProductCard'
 import PackSelector from '@/components/PackSelector'
+import WaterAddOnNote from '@/components/WaterAddOnNote'
+import { WATER_SLUG } from '@/lib/water-pricing'
 import CoaThumbnail from '@/components/CoaThumbnail'
 
 export const dynamic = 'force-dynamic'
@@ -238,6 +240,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               )}
             </div>
             <PackSelector product={product} outOfStock={outOfStock} />
+            {product.slug === WATER_SLUG && <WaterAddOnNote full />}
           </div>
         </div>
         {coas.length > 0 && (

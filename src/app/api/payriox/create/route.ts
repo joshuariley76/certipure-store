@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { priceCart, unitPriceOf } from '@/lib/water-pricing'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { codeMatches, discountAmountFor, DISCOUNT_CODE } from '@/lib/discount'
@@ -66,9 +67,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Cart is empty' }, { status: 400 })
   }
 
-  const subtotal = cartItems.reduce(
-    (sum: number, item: any) => sum + item.price_at_add * item.quantity, 0,
-  )
+  // Water reprices against the rest of the cart — see lib/water-pricing.ts.
+  // Same function the customer's checkout summary used, so the card is
+  // charged exactly what was displayed.
+  const pricedCart = priceCart(cartItems as any[])
+  const subtotal = pricedCart.subtotal
+  const unitPriceFor = (item: any) => unitPriceOf(item, pricedCart.qualifies)
 
   const admin = createAdminClient()
 
@@ -135,8 +139,8 @@ export async function POST(request: Request) {
     product_name_snapshot: item.products?.name || 'Unknown Product',
     pack_size: item.pack_size,
     quantity: item.quantity,
-    price_per_pack: item.price_at_add,
-    line_total: item.price_at_add * item.quantity,
+    price_per_pack: unitPriceFor(item),
+    line_total: unitPriceFor(item) * item.quantity,
   }))
   const { error: itemsError } = await supabase.from('order_items').insert(orderItems)
   if (itemsError) console.error('PayRio order items insert error:', itemsError)

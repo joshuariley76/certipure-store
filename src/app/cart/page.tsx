@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useCart } from '@/lib/use-cart'
 import CartItem from '@/components/CartItem'
+import WaterUpsell from '@/components/WaterUpsell'
 
 export default function CartPage() {
   const { items, itemCount, subtotal, isLoading } = useCart()
@@ -50,6 +51,9 @@ export default function CartPage() {
                   </li>
                 ))}
               </ul>
+            </div>
+            <div className="mt-4">
+              <WaterUpsell />
             </div>
           </section>
 
