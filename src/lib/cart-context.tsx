@@ -3,6 +3,7 @@
 import { createContext, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { CartItem } from '@/lib/types'
+import { priceCart } from '@/lib/water-pricing'
 
 type PackSize = 1 | 3 | 5
 
@@ -10,6 +11,11 @@ export type CartContextValue = {
   items: CartItem[]
   itemCount: number
   subtotal: number
+  /** True when the cart holds a peptide, so water is priced at the add-on
+   *  rate. Read by CartItem and by the "need water?" reminder. */
+  waterQualifies: boolean
+  /** True when water is already in the cart — the reminder hides itself. */
+  hasWater: boolean
   isLoading: boolean
   isDrawerOpen: boolean
   openDrawer: () => void
@@ -179,16 +185,21 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [supabase, userId, items])
 
   const itemCount = useMemo(() => items.reduce((sum, it) => sum + it.quantity, 0), [items])
-  const subtotal = useMemo(
-    () => items.reduce((sum, it) => sum + Number(it.price_at_add) * it.quantity, 0),
-    [items],
-  )
+
+  // Water is repriced on the fly (see lib/water-pricing.ts), so the subtotal
+  // comes from there rather than straight off price_at_add.
+  const priced = useMemo(() => priceCart(items), [items])
+  const subtotal = priced.subtotal
+  const waterQualifies = priced.qualifies
+  const hasWater = priced.hasWater
 
   const value = useMemo<CartContextValue>(
     () => ({
       items,
       itemCount,
       subtotal,
+      waterQualifies,
+      hasWater,
       isLoading,
       isDrawerOpen,
       openDrawer,
@@ -198,7 +209,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       updateQuantity,
       clearCart,
     }),
-    [items, itemCount, subtotal, isLoading, isDrawerOpen, openDrawer, closeDrawer, addToCart, removeFromCart, updateQuantity, clearCart],
+    [items, itemCount, subtotal, waterQualifies, hasWater, isLoading, isDrawerOpen, openDrawer, closeDrawer, addToCart, removeFromCart, updateQuantity, clearCart],
   )
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>
