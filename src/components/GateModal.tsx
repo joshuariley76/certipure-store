@@ -5,6 +5,50 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
+// Supabase only honours a `redirect_to` that is on the project's Redirect URL
+// allow-list - anything else is silently swapped for the project Site URL, and
+// the customer never reaches /auth/callback. window.location.origin varies
+// (www vs bare vs preview builds), so we always send the one canonical origin.
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || '').replace(/\/+$/, '')
+
+function authRedirectBase() {
+  if (typeof window === 'undefined') return SITE_URL
+  const host = window.location.hostname
+  // Local development has its own allow-list entry and no canonical host.
+  if (host === 'localhost' || host === '127.0.0.1') return window.location.origin
+  return SITE_URL || window.location.origin
+}
+
+// Remember which address just signed up, so that when the confirmation link
+// brings them back we can open the sign-in form already filled in, instead of
+// the sign-up form they have already completed. Browser-local only - this is
+// never put in a URL and never leaves the visitor's own device.
+const PENDING_EMAIL_KEY = 'certipure.pendingEmail'
+
+function rememberPendingEmail(value: string) {
+  try {
+    window.localStorage.setItem(PENDING_EMAIL_KEY, value)
+  } catch {
+    // Private browsing or blocked storage - prefilling is a convenience only.
+  }
+}
+
+function readPendingEmail() {
+  try {
+    return window.localStorage.getItem(PENDING_EMAIL_KEY)
+  } catch {
+    return null
+  }
+}
+
+function forgetPendingEmail() {
+  try {
+    window.localStorage.removeItem(PENDING_EMAIL_KEY)
+  } catch {
+    // Nothing to clean up.
+  }
+}
+
 export default function GateModal() {
   const [mode, setMode] = useState<'signup' | 'login' | 'reset'>('signup')
   const [firstName, setFirstName] = useState('')
@@ -22,6 +66,14 @@ export default function GateModal() {
   // Until we've checked for an existing session we render nothing, so a
   // logged-in visitor never sees the sign-in form flash before redirecting.
   const [checkingSession, setCheckingSession] = useState(true)
+  // Set when the visitor arrives from a confirmation link that did not work
+  // (expired, already used, or opened on a different device). We say what
+  // happened and offer a fresh link instead of silently showing the sign-up
+  // form again, which is what used to happen.
+  const [verifyProblem, setVerifyProblem] = useState<string | null>(null)
+  const [showResend, setShowResend] = useState(false)
+  const [resending, setResending] = useState(false)
+  const [resendSent, setResendSent] = useState(false)
 
   const supabase = createClient()
 
@@ -33,13 +85,49 @@ export default function GateModal() {
       if (session) {
         window.location.href = '/shop'
       } else {
-        // If they arrived from the email-verification link (the callback adds
-        // `?signin=1`), open the SIGN IN form, not the default sign-up form.
+        // A confirmation link reports its outcome in three different places:
+        // /auth/callback forwards `?verify=failed&reason=...`, while Supabase
+        // bouncing the visitor straight to the Site URL puts it in the query
+        // string AND repeats it in the hash fragment
+        // (`#error=access_denied&error_code=otp_expired`). The hash never
+        // reaches the server, so only client code can catch that last one.
         const params = new URLSearchParams(window.location.search)
-        if (params.get('signin') === '1') {
+        const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''))
+        const reason =
+          (params.get('verify') === 'failed' ? params.get('reason') : null) ||
+          params.get('error_code') ||
+          params.get('error') ||
+          hash.get('error_code') ||
+          hash.get('error')
+
+        const cameFromEmailLink = params.get('signin') === '1' || Boolean(reason)
+
+        if (cameFromEmailLink) {
+          // Whatever the outcome, someone arriving from a confirmation link has
+          // already filled in the sign-up form once. Put them on SIGN IN with
+          // their address already loaded rather than making them start over.
           setMode('login')
+          const remembered = readPendingEmail()
+          if (remembered) setEmail(remembered)
+        }
+
+        if (reason) {
+          setJustVerified(false)
+          setShowResend(true)
+          setVerifyProblem(
+            reason === 'otp_expired' || reason === 'access_denied'
+              ? 'This confirmation link has already been used, or it has expired. If you have already confirmed your email, just sign in below — otherwise send yourself a fresh link.'
+              : 'We could not finish signing you in from that link. This usually happens when the email is opened on a different device than you signed up on. Your email may already be confirmed, so try signing in below; if that does not work, send yourself a new link.'
+          )
+        } else if (params.get('signin') === '1') {
           setJustVerified(true)
         }
+
+        if (cameFromEmailLink) {
+          // Clear the markers so a refresh does not replay the message.
+          window.history.replaceState({}, '', window.location.pathname)
+        }
+
         setCheckingSession(false)
       }
     })
@@ -84,7 +172,7 @@ export default function GateModal() {
           // user in and then forwards them on. Without this, Supabase falls
           // back to the project Site URL (the homepage), which drops the user
           // on the default sign-up gate instead of signing them in.
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: `${authRedirectBase()}/auth/callback`,
           data: {
             first_name: firstName.trim(),
             last_name: lastName.trim(),
@@ -106,6 +194,8 @@ export default function GateModal() {
         return
       }
 
+      // Stash it for the trip through the inbox and back.
+      rememberPendingEmail(email.trim())
       setShowConfirmationMessage(true)
     } catch (err) {
       console.error(err)
@@ -134,7 +224,10 @@ export default function GateModal() {
 
       if (signInError) {
         if (signInError.message.toLowerCase().includes('email not confirmed')) {
-          setError('Please confirm your email first. Check your inbox for the confirmation link.')
+          setError('Please confirm your email first - check your inbox, and your spam folder.')
+          // The one case where we know for certain that a new link helps.
+          setShowResend(true)
+          setResendSent(false)
         } else {
           setError('Invalid email or password. Please try again.')
         }
@@ -143,6 +236,7 @@ export default function GateModal() {
       }
 
       // Success — the page will refresh to show the site
+      forgetPendingEmail()
       window.location.reload()
     } catch (err) {
       console.error(err)
@@ -167,7 +261,7 @@ export default function GateModal() {
 
     try {
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: `${window.location.origin}/auth/callback?next=/auth/update-password`,
+        redirectTo: `${authRedirectBase()}/auth/callback?next=/auth/update-password`,
       })
 
       if (resetError) {
@@ -182,6 +276,50 @@ export default function GateModal() {
       console.error(err)
       setError('An unexpected error occurred. Please try again.')
       setLoading(false)
+    }
+  }
+
+  // Send a fresh confirmation link. Until this existed, a customer whose email
+  // landed in spam had no way back in at all except emailing support.
+  async function handleResend() {
+    if (!email.trim()) {
+      setError('Enter your email address above, then tap resend.')
+      return
+    }
+
+    setResending(true)
+    setError(null)
+
+    try {
+      const { error: resendError } = await supabase.auth.resend({
+        type: 'signup',
+        email: email.trim(),
+        options: { emailRedirectTo: `${authRedirectBase()}/auth/callback` },
+      })
+
+      if (resendError) {
+        const msg = resendError.message.toLowerCase()
+        if (msg.includes('already') && msg.includes('confirm')) {
+          // Nothing to resend - they only need to sign in.
+          setVerifyProblem(null)
+          setShowResend(false)
+          setMode('login')
+          setError('That email is already confirmed. Please sign in below.')
+        } else if (msg.includes('rate limit') || msg.includes('too many')) {
+          setError('Too many emails requested just now. Please wait a minute and try again.')
+        } else {
+          setError(resendError.message)
+        }
+        setResending(false)
+        return
+      }
+
+      setResendSent(true)
+    } catch (err) {
+      console.error(err)
+      setError('We could not send that email. Please contact support@certipure.net.')
+    } finally {
+      setResending(false)
     }
   }
 
@@ -219,8 +357,23 @@ export default function GateModal() {
           >
             Got it — take me to sign in
           </button>
-          <p className="mt-4 text-xs text-gray-400">
-            Didn&apos;t get the email? Check your spam folder or contact support@certipure.net
+          {resendSent ? (
+            <p className="mt-4 text-xs text-green-600">
+              Sent again. It can take a minute to arrive.
+            </p>
+          ) : (
+            <button
+              type="button"
+              onClick={handleResend}
+              disabled={resending}
+              className="mt-4 text-xs font-semibold text-blue-600 underline hover:text-blue-800 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {resending ? 'Sending...' : 'Didn\u2019t get it? Send the email again'}
+            </button>
+          )}
+          <p className="mt-3 text-xs text-gray-400">
+            Check your spam folder too. Corporate mail filters sometimes hold these.
+            Still stuck? Contact support@certipure.net
           </p>
         </div>
       </div>
@@ -258,10 +411,19 @@ export default function GateModal() {
             : 'Sign in to access your account and browse our catalog.'}
         </p>
 
-        {/* Email-verified confirmation (shown once, after clicking the link) */}
-        {justVerified && mode === 'login' && !error && (
+        {/* Email-verified confirmation (shown once, after clicking the link).
+            Gated on verifyProblem so we never tell someone their email is
+            verified when the link they just clicked actually failed. */}
+        {justVerified && mode === 'login' && !error && !verifyProblem && (
           <div className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
             Your email is verified. Please sign in below to access the catalog.
+          </div>
+        )}
+
+        {/* What went wrong with the confirmation link they clicked */}
+        {verifyProblem && (
+          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            {verifyProblem}
           </div>
         )}
 
@@ -270,6 +432,27 @@ export default function GateModal() {
           <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}
           </div>
+        )}
+
+        {/* Escape hatch: send a fresh confirmation link */}
+        {showResend && (
+          resendSent ? (
+            <div className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+              If <span className="font-medium">{email}</span> still needs confirming,
+              a new link is on its way — it can take a minute, and it may land in
+              your spam folder. If that address is already confirmed, no email is
+              sent; just sign in below.
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={handleResend}
+              disabled={resending}
+              className="mb-4 w-full rounded-lg border border-blue-600 px-4 py-2.5 text-sm font-semibold text-blue-600 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {resending ? 'Sending...' : 'Resend confirmation email'}
+            </button>
+          )
         )}
 
         {/* Signup form */}
