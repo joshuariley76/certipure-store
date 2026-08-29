@@ -11,7 +11,7 @@ import CoaThumbnail from '@/components/CoaThumbnail'
 
 export const dynamic = 'force-dynamic'
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://certipure.net'
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.certipure.net'
 
 // Short, deterministic caption for a COA thumbnail, e.g. "Batch CPRT07-1 · Jun 29, 2026".
 const COA_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']

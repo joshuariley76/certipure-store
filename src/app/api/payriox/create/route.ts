@@ -15,7 +15,7 @@ import {
   iptTimestamp,
 } from '@/lib/payriox'
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://certipure.net'
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.certipure.net'
 
 // Shipping rules — keep in sync with api/create-order/route.ts.
 const FREE_SHIPPING_THRESHOLD = 300

@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next'
 import { supabase } from '@/lib/supabase'
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://certipure.net'
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.certipure.net'
 
 // Rebuild on each request so newly added products appear in the sitemap.
 export const dynamic = 'force-dynamic'

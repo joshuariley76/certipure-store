@@ -21,7 +21,7 @@ import type { CartItem } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://certipure.net'
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.certipure.net'
 const DELAY_HOURS = Number(process.env.CART_ABANDON_DELAY_HOURS || '24')
 const SEND_FOR_REAL = (process.env.CART_ABANDON_REMINDERS || '').toLowerCase() === 'on'
 

@@ -5,10 +5,11 @@ import { Resend } from 'resend'
 // .env.local as RESEND_API_KEY and is never exposed to the browser.
 export const resend = new Resend(process.env.RESEND_API_KEY)
 
-// The address emails are sent *from*. New Resend accounts can only use
-// onboarding@resend.dev (and can only deliver to your own Resend account
-// email) until a domain is verified. Once you verify certipure's domain in
-// Resend, set RESEND_FROM_EMAIL in .env.local to e.g.
-// "CertiPure <orders@yourdomain.com>".
+// The address emails are sent *from*. certipure.net is verified in Resend, so
+// the default is a real address on the domain. It used to fall back to
+// onboarding@resend.dev, which only ever delivers to the Resend account owner
+// — so the moment the cart-reminder cron found an eligible cart it would have
+// silently failed to reach the actual customer, with no one watching. Set
+// RESEND_FROM_EMAIL to override per environment.
 export const FROM_EMAIL =
-  process.env.RESEND_FROM_EMAIL || 'CertiPure <onboarding@resend.dev>'
+  process.env.RESEND_FROM_EMAIL || 'CertiPure <noreply@certipure.net>'

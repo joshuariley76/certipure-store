@@ -9,7 +9,7 @@ import { CartProvider } from "@/lib/cart-context"
 import { createClient } from "@/lib/supabase/server"
 import { headers } from "next/headers"
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://certipure.net"
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.certipure.net"
 
 const SITE_TITLE = "CertiPure — Premium Research Peptides | Third-Party Lab Tested"
 const SITE_DESCRIPTION =
